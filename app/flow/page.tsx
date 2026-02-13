@@ -237,43 +237,47 @@ export default function DealFlowPage() {
     if (!current) return;
     setAiLoading(true);
 
-    const name = [current.first_name, current.last_name].filter(Boolean).join(' ') || 'there';
-    const vehicle = current.vehicle_interest || 'a vehicle';
-    const lastComm = comms.length > 0 ? comms[0].content : null;
-
-    const prompts: Record<string, string> = {
-      intro: `Write a short, friendly first outreach text message (2-3 sentences max) to ${name} who is interested in ${vehicle}. They found us through ${SOURCE_LABEL[current.source] || current.source}. Be conversational, not salesy. Mention Delivrd helps people save thousands on car purchases. Ask about their timeline.`,
-      follow_up: `Write a short follow-up text (2 sentences) to ${name} about their interest in ${vehicle}. ${lastComm ? `Last message context: "${lastComm.substring(0, 100)}"` : 'We haven\'t heard back yet.'}. Be casual and helpful, not pushy.`,
-      objection: `Write a short response (2-3 sentences) handling a common car buying objection for ${name} interested in ${vehicle}. Address concerns about our service fee by framing it against typical savings of $3,000-$8,000. Be confident but not aggressive.`,
-      close: `Write a short closing message (2-3 sentences) for ${name} who is interested in ${vehicle}. Ask them to confirm they want to move forward so we can start working the deal. Mention our $1,000 fee is only charged when we save them money.`,
-    };
-
     try {
       const res = await fetch('/api/ai-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompts[aiContext] }),
+        body: JSON.stringify({
+          mode: aiContext,
+          contact: {
+            first_name: current.first_name,
+            last_name: current.last_name,
+            vehicle_interest: current.vehicle_interest,
+            timeline: current.timeline,
+            source: current.source,
+            source_detail: current.source_detail,
+            notes: current.notes,
+          },
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setAiResponse(data.response || data.text || '');
+        setAiResponse(data.message || '');
       } else {
-        // Fallback: generate locally
+        // Fallback templates
+        const name = [current.first_name, current.last_name].filter(Boolean).join(' ') || 'there';
+        const vehicle = current.vehicle_interest || 'a vehicle';
         const templates: Record<string, string> = {
-          intro: `Hey ${name}! 👋 I'm reaching out from Delivrd - we help people save thousands when buying a car. I saw you're interested in ${vehicle}. What's your timeline looking like?`,
-          follow_up: `Hey ${name}, just checking in on your ${vehicle} search. Any updates on your timeline? Happy to help whenever you're ready!`,
-          objection: `Great question ${name}! Our $1,000 fee typically saves our clients $3,000-$8,000 on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
-          close: `${name}, sounds like you're ready to move forward on the ${vehicle}! Want me to start working the deal? Our fee is $1,000 and we only charge once we've locked in your savings.`,
+          intro: `Hey ${name}, reaching out from Delivrd. I saw you're interested in ${vehicle}. We negotiate the best price with dealers so you don't have to. What's your timeline looking like?`,
+          follow_up: `Hey ${name}, just checking in on your ${vehicle} search. Any updates on your timeline? Happy to help whenever you're ready.`,
+          objection: `${name}, our fee typically saves clients $3k-$8k on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
+          close: `${name}, sounds like you're ready to move on the ${vehicle}. Want me to start working the deal? We only charge our fee once we've locked in your savings.`,
         };
         setAiResponse(templates[aiContext]);
       }
     } catch {
+      const name = [current.first_name, current.last_name].filter(Boolean).join(' ') || 'there';
+      const vehicle = current.vehicle_interest || 'a vehicle';
       const templates: Record<string, string> = {
-        intro: `Hey ${name}! 👋 I'm reaching out from Delivrd - we help people save thousands when buying a car. I saw you're interested in ${vehicle}. What's your timeline looking like?`,
-        follow_up: `Hey ${name}, just checking in on your ${vehicle} search. Any updates on your timeline? Happy to help whenever you're ready!`,
-        objection: `Great question ${name}! Our $1,000 fee typically saves our clients $3,000-$8,000 on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
-        close: `${name}, sounds like you're ready to move forward on the ${vehicle}! Want me to start working the deal? Our fee is $1,000 and we only charge once we've locked in your savings.`,
+        intro: `Hey ${name}, reaching out from Delivrd. I saw you're interested in ${vehicle}. We negotiate the best price with dealers so you don't have to. What's your timeline looking like?`,
+        follow_up: `Hey ${name}, just checking in on your ${vehicle} search. Any updates on your timeline? Happy to help whenever you're ready.`,
+        objection: `${name}, our fee typically saves clients $3k-$8k on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
+        close: `${name}, sounds like you're ready to move on the ${vehicle}. Want me to start working the deal? We only charge our fee once we've locked in your savings.`,
       };
       setAiResponse(templates[aiContext]);
     }
