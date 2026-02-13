@@ -8,11 +8,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { context, mode, contact } = await request.json();
+    const { context, mode, contact, model } = await request.json();
 
     if (!mode || !contact) {
       return NextResponse.json({ error: 'Missing mode or contact' }, { status: 400 });
     }
+
+    const useModel = model === 'opus' ? 'claude-opus-4-5-20250929' : 'claude-haiku-4-5-20251001';
 
     const name = contact.first_name || 'there';
     const vehicle = contact.vehicle_interest || '';
@@ -56,7 +58,7 @@ Push for next step: getting their pre-approval info or target price so we can st
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: useModel,
         max_tokens: 300,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],

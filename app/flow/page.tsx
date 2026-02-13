@@ -233,7 +233,7 @@ export default function DealFlowPage() {
     }
   }
 
-  async function generateAiResponse() {
+  async function generateAiResponse(model: 'haiku' | 'opus' = 'haiku') {
     if (!current) return;
     setAiLoading(true);
 
@@ -243,6 +243,7 @@ export default function DealFlowPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: aiContext,
+          model,
           contact: {
             first_name: current.first_name,
             last_name: current.last_name,
@@ -567,14 +568,22 @@ export default function DealFlowPage() {
                 </div>
               </div>
 
-              <button onClick={generateAiResponse} disabled={aiLoading} style={{
-                width: '100%', padding: '10px', background: T.amberDim, border: `1px solid ${T.amber}20`,
-                borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                color: aiLoading ? T.textDim : T.amber, cursor: aiLoading ? 'wait' : 'pointer',
-                marginBottom: aiResponse ? '10px' : '0',
-              }}>
-                {aiLoading ? 'Generating...' : `Generate ${aiContext === 'follow_up' ? 'Follow Up' : aiContext.charAt(0).toUpperCase() + aiContext.slice(1)} Message`}
-              </button>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: aiResponse ? '10px' : '0' }}>
+                <button onClick={() => generateAiResponse('haiku')} disabled={aiLoading} style={{
+                  flex: 1, padding: '10px', background: T.amberDim, border: `1px solid ${T.amber}20`,
+                  borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                  color: aiLoading ? T.textDim : T.amber, cursor: aiLoading ? 'wait' : 'pointer',
+                }}>
+                  {aiLoading ? 'Generating...' : `⚡ Quick Generate`}
+                </button>
+                <button onClick={() => generateAiResponse('opus')} disabled={aiLoading} style={{
+                  flex: 1, padding: '10px', background: T.purpleDim, border: `1px solid ${T.purple}20`,
+                  borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                  color: aiLoading ? T.textDim : T.purple, cursor: aiLoading ? 'wait' : 'pointer',
+                }}>
+                  {aiLoading ? 'Generating...' : `🧠 Super AI`}
+                </button>
+              </div>
 
               {aiResponse && (
                 <div>
