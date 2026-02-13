@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Use service role or anon key - this endpoint is protected by a secret token
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const getSupabase = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase not configured');
+  return createClient(url, key);
+};
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'delivrd-webhook-2024';
 
@@ -119,7 +120,7 @@ export async function POST(request: Request) {
     let existingId: string | null = null;
 
     if (contact.phone) {
-      const { data } = await supabase.from('contacts')
+      const { data } = await getSupabase().from('contacts')
         .select('id')
         .eq('phone', contact.phone)
         .limit(1);
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     }
 
     if (!existingId && contact.email) {
-      const { data } = await supabase.from('contacts')
+      const { data } = await getSupabase().from('contacts')
         .select('id')
         .eq('email', contact.email)
         .limit(1);
@@ -143,12 +144,12 @@ export async function POST(request: Request) {
         }
       });
 
-      const { error } = await supabase.from('contacts').update(updates).eq('id', existingId);
+      const { error } = await getSupabase().from('contacts').update(updates).eq('id', existingId);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
       // Log communication if there's a message
       if (body.message || body.body_text) {
-        await supabase.from('communications').insert({
+        await getSupabase().from('communications').insert({
           contact_id: existingId,
           type: source === 'quo' ? (body.type || 'sms') : source === 'email' ? 'email' : 'note',
           direction: body.direction || 'inbound',
@@ -160,12 +161,12 @@ export async function POST(request: Request) {
     }
 
     // Create new contact
-    const { data, error } = await supabase.from('contacts').insert(contact).select('id').single();
+    const { data, error } = await getSupabase().from('contacts').insert(contact).select('id').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Log initial communication if there's a message
     if (data && (body.message || body.body_text)) {
-      await supabase.from('communications').insert({
+      await getSupabase().from('communications').insert({
         contact_id: data.id,
         type: source === 'quo' ? (body.type || 'sms') : source === 'email' ? 'email' : 'note',
         direction: body.direction || 'inbound',

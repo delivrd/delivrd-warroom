@@ -1,14 +1,11 @@
 // Supabase Client Configuration
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
-// Create client (will fail at runtime if env vars missing, but allows build to complete)
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-);
+// Create client (placeholder values allow build to complete; real values needed at runtime)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper to check if user is authenticated
 export async function getUser() {
