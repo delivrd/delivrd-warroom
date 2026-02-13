@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing mode or contact' }, { status: 400 });
     }
 
-    const useModel = model === 'opus' ? 'claude-opus-4-5-20250929' : 'claude-haiku-4-5-20251001';
+    const useModel = model === 'opus' ? 'claude-sonnet-4-5-20250929' : 'claude-haiku-4-5-20251001';
 
     const name = contact.first_name || 'there';
     const vehicle = contact.vehicle_interest || '';
@@ -30,22 +30,43 @@ Rules:
 - Be direct and confident
 - Never use exclamation marks more than once
 - No emojis unless the lead used them first
-- Reference their specific car/situation when available
+- ALWAYS reference the lead's specific situation from their notes/message. This is the most important thing. They reached out for a reason, acknowledge it.
 - Delivrd negotiates the price, handles the back-and-forth with dealers, saves customers thousands
-- The tone is: helpful, no-pressure, confident, slightly casual`;
+- The tone is: helpful, no-pressure, confident, slightly casual
+- Write ONLY the message text. No quotes, no labels, no preamble.`;
+
+    // Build context block with notes as the priority
+    const contextParts = [];
+    if (notes) contextParts.push(`THEIR MESSAGE/SITUATION: "${notes}"`);
+    if (vehicle) contextParts.push(`Vehicle: ${vehicle}`);
+    if (timeline) contextParts.push(`Timeline: ${timeline}`);
+    if (source) contextParts.push(`Source: ${source}`);
+    const contextBlock = contextParts.length > 0 ? contextParts.join('\n') : 'No additional context.';
 
     const modePrompts: Record<string, string> = {
-      intro: `Write a first-contact SMS to ${name}. ${vehicle ? `They're interested in a ${vehicle}.` : ''} ${timeline ? `Timeline: ${timeline}.` : ''} ${source ? `They came from ${source}.` : ''} ${notes ? `Context: ${notes}` : ''}
-Keep it short. Introduce yourself, reference what they're looking for, and offer to help. Don't be salesy.`,
+      intro: `Write a first-contact SMS to ${name}.
 
-      follow_up: `Write a follow-up SMS to ${name}. ${vehicle ? `They were looking at a ${vehicle}.` : ''} We reached out before but haven't heard back. ${notes ? `Context: ${notes}` : ''}
-Keep it casual and short. One clear reason to reply. No guilt trips.`,
+${contextBlock}
 
-      objection: `Write an objection-handling SMS to ${name}. ${vehicle ? `They're interested in a ${vehicle}.` : ''} They might be hesitant about using a service or unsure about the value. ${notes ? `Context: ${notes}` : ''}
-Address the hesitation directly. Keep it real. Mention that we save people $2k-5k+ on average and it costs nothing upfront.`,
+Reference their specific situation directly. Show you actually read what they said. Then briefly mention how Delivrd can help. Keep it under 160 chars if possible.`,
 
-      close: `Write a closing SMS to ${name}. ${vehicle ? `They want a ${vehicle}.` : ''} They've been talking to us and seem ready. ${notes ? `Context: ${notes}` : ''}
-Push for next step: getting their pre-approval info or target price so we can start negotiating. Be direct.`,
+      follow_up: `Write a follow-up SMS to ${name}. We reached out before but haven't heard back.
+
+${contextBlock}
+
+Reference something specific about their situation to show this isn't a mass text. One clear reason to reply. Keep it short.`,
+
+      objection: `Write an objection-handling SMS to ${name}.
+
+${contextBlock}
+
+They might be hesitant. Address their specific situation and explain how we help. We save people $2k-5k+ on average. No upfront cost. Keep it real and direct.`,
+
+      close: `Write a closing SMS to ${name}.
+
+${contextBlock}
+
+They seem ready to move forward. Push for the next step: getting their pre-approval info or target price so we can start negotiating. Be direct.`,
     };
 
     const userPrompt = modePrompts[mode] || modePrompts.intro;
