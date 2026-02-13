@@ -258,7 +258,19 @@ export default function DealFlowPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setAiResponse(data.message || '');
+        const msg = data.message || '';
+        // Parse subject line from email responses
+        if (showSendEmail) {
+          const subjectMatch = msg.match(/^Subject:\s*(.+)\n/i);
+          if (subjectMatch) {
+            setEmailSubject(subjectMatch[1].trim());
+            setEmailContent(msg.replace(/^Subject:\s*.+\n+/i, '').trim());
+          } else {
+            setEmailContent(msg);
+          }
+        } else {
+          setSmsContent(msg);
+        }
       } else {
         // Fallback templates
         const name = [current.first_name, current.last_name].filter(Boolean).join(' ') || 'there';
@@ -269,7 +281,11 @@ export default function DealFlowPage() {
           objection: `${name}, our fee typically saves clients $3k-$8k on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
           close: `${name}, sounds like you're ready to move on the ${vehicle}. Want me to start working the deal? We only charge our fee once we've locked in your savings.`,
         };
-        setAiResponse(templates[aiContext]);
+        if (showSendEmail) {
+          setEmailContent(templates[aiContext]);
+        } else {
+          setSmsContent(templates[aiContext]);
+        }
       }
     } catch {
       const name = [current.first_name, current.last_name].filter(Boolean).join(' ') || 'there';
@@ -280,7 +296,11 @@ export default function DealFlowPage() {
         objection: `${name}, our fee typically saves clients $3k-$8k on their purchase. We only charge when we deliver savings, so there's zero risk on your end.`,
         close: `${name}, sounds like you're ready to move on the ${vehicle}. Want me to start working the deal? We only charge our fee once we've locked in your savings.`,
       };
-      setAiResponse(templates[aiContext]);
+      if (showSendEmail) {
+        setEmailContent(templates[aiContext]);
+      } else {
+        setSmsContent(templates[aiContext]);
+      }
     }
     setAiLoading(false);
   }
@@ -461,8 +481,34 @@ export default function DealFlowPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, color: T.blue, letterSpacing: '1px' }}>SEND SMS → {current.phone}</span>
                 </div>
+                {/* AI Generate inside SMS */}
+                <div style={{ display: 'flex', gap: '3px', marginBottom: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '3px', flex: 1 }}>
+                    {(['intro', 'follow_up', 'objection', 'close'] as const).map(ctx => (
+                      <button key={ctx} onClick={() => setAiContext(ctx)} style={{
+                        fontSize: '8px', fontWeight: 600,
+                        color: aiContext === ctx ? T.textBright : T.textDim,
+                        background: aiContext === ctx ? T.amberDim : 'transparent',
+                        border: `1px solid ${aiContext === ctx ? `${T.amber}30` : T.border}`,
+                        borderRadius: '4px', padding: '2px 6px', cursor: 'pointer',
+                      }}>{ctx === 'follow_up' ? 'Follow Up' : ctx.charAt(0).toUpperCase() + ctx.slice(1)}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    <button onClick={() => generateAiResponse('haiku')} disabled={aiLoading} style={{
+                      fontSize: '9px', fontWeight: 600, padding: '3px 8px',
+                      background: T.amberDim, border: `1px solid ${T.amber}20`, borderRadius: '4px',
+                      color: aiLoading ? T.textDim : T.amber, cursor: aiLoading ? 'wait' : 'pointer',
+                    }}>{aiLoading ? '...' : '⚡ Quick'}</button>
+                    <button onClick={() => generateAiResponse('opus')} disabled={aiLoading} style={{
+                      fontSize: '9px', fontWeight: 600, padding: '3px 8px',
+                      background: T.purpleDim, border: `1px solid ${T.purple}20`, borderRadius: '4px',
+                      color: aiLoading ? T.textDim : T.purple, cursor: aiLoading ? 'wait' : 'pointer',
+                    }}>{aiLoading ? '...' : '🧠 Super'}</button>
+                  </div>
+                </div>
                 <textarea value={smsContent} onChange={e => setSmsContent(e.target.value)}
-                  placeholder="Type your message..." rows={3} autoFocus
+                  placeholder="Type your message or generate with AI above..." rows={3} autoFocus
                   style={{
                     width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
                     borderRadius: '6px', fontSize: '13px', color: T.text, outline: 'none',
@@ -491,6 +537,32 @@ export default function DealFlowPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, color: T.purple, letterSpacing: '1px' }}>SEND EMAIL → {current.email}</span>
                 </div>
+                {/* AI Generate inside Email */}
+                <div style={{ display: 'flex', gap: '3px', marginBottom: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '3px', flex: 1 }}>
+                    {(['intro', 'follow_up', 'objection', 'close'] as const).map(ctx => (
+                      <button key={ctx} onClick={() => setAiContext(ctx)} style={{
+                        fontSize: '8px', fontWeight: 600,
+                        color: aiContext === ctx ? T.textBright : T.textDim,
+                        background: aiContext === ctx ? T.amberDim : 'transparent',
+                        border: `1px solid ${aiContext === ctx ? `${T.amber}30` : T.border}`,
+                        borderRadius: '4px', padding: '2px 6px', cursor: 'pointer',
+                      }}>{ctx === 'follow_up' ? 'Follow Up' : ctx.charAt(0).toUpperCase() + ctx.slice(1)}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    <button onClick={() => generateAiResponse('haiku')} disabled={aiLoading} style={{
+                      fontSize: '9px', fontWeight: 600, padding: '3px 8px',
+                      background: T.amberDim, border: `1px solid ${T.amber}20`, borderRadius: '4px',
+                      color: aiLoading ? T.textDim : T.amber, cursor: aiLoading ? 'wait' : 'pointer',
+                    }}>{aiLoading ? '...' : '⚡ Quick'}</button>
+                    <button onClick={() => generateAiResponse('opus')} disabled={aiLoading} style={{
+                      fontSize: '9px', fontWeight: 600, padding: '3px 8px',
+                      background: T.purpleDim, border: `1px solid ${T.purple}20`, borderRadius: '4px',
+                      color: aiLoading ? T.textDim : T.purple, cursor: aiLoading ? 'wait' : 'pointer',
+                    }}>{aiLoading ? '...' : '🧠 Super'}</button>
+                  </div>
+                </div>
                 <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)}
                   placeholder="Subject (optional)" style={{
                     width: '100%', padding: '8px 10px', background: T.bg, border: `1px solid ${T.border}`,
@@ -498,7 +570,7 @@ export default function DealFlowPage() {
                     fontFamily: 'inherit', marginBottom: '6px',
                   }} />
                 <textarea value={emailContent} onChange={e => setEmailContent(e.target.value)}
-                  placeholder="Type your email..." rows={5} autoFocus
+                  placeholder="Type your email or generate with AI above..." rows={5} autoFocus
                   style={{
                     width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
                     borderRadius: '6px', fontSize: '13px', color: T.text, outline: 'none',
@@ -547,75 +619,6 @@ export default function DealFlowPage() {
                 </div>
               </div>
             )}
-
-            {/* AI Response Generator */}
-            <div style={{
-              background: T.surface, borderRadius: '10px', border: `1px solid ${T.border}`, padding: '16px',
-              borderLeft: `2px solid ${T.amber}`,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: T.amber, letterSpacing: '1px' }}>AI RESPONSE</span>
-                <div style={{ display: 'flex', gap: '3px' }}>
-                  {(['intro', 'follow_up', 'objection', 'close'] as const).map(ctx => (
-                    <button key={ctx} onClick={() => setAiContext(ctx)} style={{
-                      fontSize: '9px', fontWeight: 600,
-                      color: aiContext === ctx ? T.textBright : T.textDim,
-                      background: aiContext === ctx ? T.amberDim : 'transparent',
-                      border: `1px solid ${aiContext === ctx ? `${T.amber}30` : T.border}`,
-                      borderRadius: '4px', padding: '3px 8px', cursor: 'pointer',
-                    }}>{ctx === 'follow_up' ? 'Follow Up' : ctx.charAt(0).toUpperCase() + ctx.slice(1)}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '6px', marginBottom: aiResponse ? '10px' : '0' }}>
-                <button onClick={() => generateAiResponse('haiku')} disabled={aiLoading} style={{
-                  flex: 1, padding: '10px', background: T.amberDim, border: `1px solid ${T.amber}20`,
-                  borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                  color: aiLoading ? T.textDim : T.amber, cursor: aiLoading ? 'wait' : 'pointer',
-                }}>
-                  {aiLoading ? 'Generating...' : `⚡ Quick Generate`}
-                </button>
-                <button onClick={() => generateAiResponse('opus')} disabled={aiLoading} style={{
-                  flex: 1, padding: '10px', background: T.purpleDim, border: `1px solid ${T.purple}20`,
-                  borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                  color: aiLoading ? T.textDim : T.purple, cursor: aiLoading ? 'wait' : 'pointer',
-                }}>
-                  {aiLoading ? 'Generating...' : `🧠 Super AI`}
-                </button>
-              </div>
-
-              {aiResponse && (
-                <div>
-                  <div style={{
-                    padding: '12px', background: T.bg, borderRadius: '6px', border: `1px solid ${T.border}`,
-                    fontSize: '13px', color: T.text, lineHeight: 1.7, marginBottom: '8px',
-                  }}>{aiResponse}</div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={() => { navigator.clipboard.writeText(aiResponse); }} style={{
-                      fontSize: '10px', fontWeight: 600, color: T.blue, background: T.blueWash,
-                      border: `1px solid ${T.blueBorder}`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
-                    }}>Copy</button>
-                    {current.phone && (
-                      <button onClick={() => { setSmsContent(aiResponse); setShowSendSms(true); setShowSendEmail(false); setShowLogPanel(false); }} style={{
-                        fontSize: '10px', fontWeight: 600, color: T.green, background: T.greenDim,
-                        border: `1px solid ${T.green}20`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
-                      }}>Send as SMS →</button>
-                    )}
-                    {current.email && (
-                      <button onClick={() => { setEmailContent(aiResponse); setShowSendEmail(true); setShowSendSms(false); setShowLogPanel(false); }} style={{
-                        fontSize: '10px', fontWeight: 600, color: T.purple, background: T.purpleDim,
-                        border: `1px solid ${T.purple}20`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
-                      }}>Send as Email →</button>
-                    )}
-                    <button onClick={() => generateAiResponse('haiku')} style={{
-                      fontSize: '10px', fontWeight: 500, color: T.textFaint, background: 'none',
-                      border: 'none', cursor: 'pointer', padding: '4px 8px',
-                    }}>Regenerate</button>
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Stage + Follow-up */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
