@@ -57,29 +57,49 @@ export async function POST(request: Request) {
     }
 
     // ═══ EMAIL FORMAT ═══
+    // From Apps Script: { source: "email", first_name, last_name, phone, email, vehicle_interest, vehicle_make, timeline, notes, source_detail }
     // From Zapier/Make: { source: "email", from_name, from_email, subject, body_text }
     else if (source === 'email') {
-      const fromName = body.from_name || body.sender_name || '';
-      const nameParts = fromName.split(' ');
-      contact.first_name = nameParts[0] || null;
-      contact.last_name = nameParts.slice(1).join(' ') || null;
-      contact.email = body.from_email || body.sender_email || body.email || null;
-      contact.phone = body.phone || null;
-      contact.source_detail = body.subject || 'email';
-      contact.notes = body.body_text || body.body || body.message || null;
+      // Direct fields (from Apps Script)
+      if (body.first_name || body.last_name) {
+        contact.first_name = body.first_name || null;
+        contact.last_name = body.last_name || null;
+      } else {
+        // Legacy: parse from from_name
+        const fromName = body.from_name || body.sender_name || '';
+        const nameParts = fromName.split(' ');
+        contact.first_name = nameParts[0] || null;
+        contact.last_name = nameParts.slice(1).join(' ') || null;
+      }
 
-      // Try to extract vehicle info from subject/body
-      const text = `${body.subject || ''} ${body.body_text || ''}`.toLowerCase();
-      const makes = ['bmw', 'mercedes', 'audi', 'lexus', 'toyota', 'honda', 'tesla', 'porsche', 'land rover', 'range rover', 'ford', 'chevrolet', 'jeep', 'hyundai', 'kia', 'nissan', 'subaru', 'volkswagen', 'volvo', 'acura', 'infiniti', 'cadillac', 'lincoln', 'genesis', 'mazda'];
-      for (const make of makes) {
-        if (text.includes(make)) {
-          contact.vehicle_make = make.charAt(0).toUpperCase() + make.slice(1);
-          break;
+      contact.email = body.email || body.from_email || body.sender_email || null;
+      contact.phone = body.phone || null;
+      contact.vehicle_interest = body.vehicle_interest || null;
+      contact.vehicle_make = body.vehicle_make || null;
+      contact.timeline = body.timeline || null;
+      contact.budget_range = body.budget_range || null;
+      contact.source_detail = body.source_detail || body.subject || 'email';
+      contact.notes = body.notes || body.body_text || body.body || body.message || null;
+
+      // Try to extract vehicle make from vehicle_interest if not set
+      if (!contact.vehicle_make && contact.vehicle_interest) {
+        const text = contact.vehicle_interest.toLowerCase();
+        const makes = ['bmw', 'mercedes', 'audi', 'lexus', 'toyota', 'honda', 'tesla', 'porsche', 'land rover', 'range rover', 'ford', 'chevrolet', 'jeep', 'hyundai', 'kia', 'nissan', 'subaru', 'volkswagen', 'volvo', 'acura', 'infiniti', 'cadillac', 'lincoln', 'genesis', 'mazda', 'dodge', 'ram', 'chrysler', 'buick', 'gmc', 'rivian', 'lucid'];
+        for (const make of makes) {
+          if (text.includes(make)) {
+            contact.vehicle_make = make.charAt(0).toUpperCase() + make.slice(1);
+            break;
+          }
         }
       }
 
-      contact.lead_score = 5; // low confidence from email
-      if (contact.phone) contact.lead_score += 10;
+      // Score based on data completeness
+      let score = 10; // base for email lead
+      if (contact.phone) score += 15;
+      if (contact.vehicle_interest) score += 10;
+      if (contact.timeline) score += 10;
+      if (contact.email) score += 5;
+      contact.lead_score = score;
     }
 
     // ═══ QUO FORMAT ═══
