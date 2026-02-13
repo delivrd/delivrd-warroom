@@ -232,11 +232,99 @@ export async function POST(request: Request) {
       });
     }
 
+    // Auto-generate draft email response (fire and forget)
+    if (data) {
+      generateDraft(data.id, contact).catch(err => console.error('Draft generation failed:', err));
+    }
+
     return NextResponse.json({ success: true, action: 'created', id: data?.id });
 
   } catch (err: any) {
     console.error('Webhook error:', err);
     return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+  }
+}
+
+// Auto-generate draft intro email for new leads
+async function generateDraft(contactId: string, contact: Record<string, any>) {
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_API_KEY) return;
+
+  const name = contact.first_name || 'there';
+  const vehicle = contact.vehicle_interest || '';
+  const timeline = contact.timeline || '';
+  const source = contact.source_detail || contact.source || '';
+  const notes = contact.notes || '';
+
+  // Only generate if we have something to work with
+  if (!notes && !vehicle) return;
+
+  const contextParts = [];
+  if (notes) contextParts.push(`THEIR MESSAGE/SITUATION: "${notes}"`);
+  if (vehicle) contextParts.push(`Vehicle: ${vehicle}`);
+  if (timeline) contextParts.push(`Timeline: ${timeline}`);
+  if (source) contextParts.push(`Source: ${source}`);
+  const contextBlock = contextParts.join('\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        system: `You are Tomi Mikula, Founder and CEO of Delivrd.
+
+Your communication style: Calm, direct, human, efficient, confident without ego. Never pushy, never needy, never robotic. CEO energy with calm authority. Friendly and direct, slightly conversational, never casual or corporate. No em dashes. No sales jargon. No urgency tricks. No emojis.
+
+What Delivrd is: A concierge negotiation and sourcing service (NOT an auto broker). Clients pay for work, expertise, and execution. Nationwide searches standard. The market dictates pricing, not wishful targets.
+
+Critical: Email is the fast lane pre-signup. The fastest way to get answers is replying to the email. Once signed up, communication shifts to text and calls.
+
+Every email must: Acknowledge what they're shopping for, reference their SPECIFIC situation, validate their thinking, set realistic expectations, make handing it off feel smart not salesy, end with a clean CTA.
+
+Required CTA link (include naturally): https://www.delivrdto.me/product/insta-pay-deal-negotiation
+Position as delegation: "If you want me to take this over" not "buy now."
+
+Format: First line must be "Subject: Delivrd Inquiry – [Vehicle]" then blank line then email body. Sign as Tomi. Keep it short to medium. Every sentence earns its spot.`,
+        messages: [{
+          role: 'user',
+          content: `Write a first-contact email to ${name}.
+
+${contextBlock}
+
+This is the first outreach. Reference their specific situation. Show you read what they said. Position Delivrd as the easy, smart move. Include the signup link naturally.`,
+        }],
+      }),
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const msg = data.content?.[0]?.text || '';
+    if (!msg) return;
+
+    // Parse subject and body
+    let draftSubject = '';
+    let draftEmail = msg;
+    const subjectMatch = msg.match(/^Subject:\s*(.+)\n/i);
+    if (subjectMatch) {
+      draftSubject = subjectMatch[1].trim();
+      draftEmail = msg.replace(/^Subject:\s*.+\n+/i, '').trim();
+    }
+
+    // Save to contact record
+    await getSupabase().from('contacts').update({
+      draft_subject: draftSubject,
+      draft_email: draftEmail,
+    }).eq('id', contactId);
+
+  } catch (err) {
+    console.error('Draft generation error:', err);
   }
 }
 

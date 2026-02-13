@@ -38,6 +38,9 @@ export interface Contact {
   lost_reason: string | null;
   closed_deal_value: number | null;
   savings_amount: number | null;
+  draft_subject: string | null;
+  draft_email: string | null;
+  draft_sms: string | null;
 }
 
 export interface Communication {

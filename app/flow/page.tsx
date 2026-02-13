@@ -442,6 +442,59 @@ export default function DealFlowPage() {
                 ))}
               </div>
 
+              {/* Pre-generated AI Email Draft */}
+              {current.draft_email && current.email && (
+                <div style={{
+                  background: T.surface, borderRadius: '10px', border: `1px solid ${T.amber}30`,
+                  padding: '16px', borderLeft: `3px solid ${T.amber}`,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: T.amber, letterSpacing: '1px' }}>⚡ AI DRAFT READY</span>
+                    <span style={{ fontSize: '9px', color: T.textFaint }}>→ {current.email}</span>
+                  </div>
+                  {current.draft_subject && (
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: T.textMid, marginBottom: '6px' }}>
+                      {current.draft_subject}
+                    </div>
+                  )}
+                  <div style={{
+                    fontSize: '12px', color: T.text, lineHeight: 1.7, marginBottom: '12px',
+                    whiteSpace: 'pre-wrap' as const, maxHeight: '120px', overflow: 'auto',
+                  }}>
+                    {current.draft_email}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <button onClick={() => {
+                      setEmailSubject(current.draft_subject || '');
+                      setEmailContent(current.draft_email || '');
+                      setShowSendEmail(true); setShowSendSms(false); setShowLogPanel(false);
+                    }} style={{
+                      fontSize: '11px', fontWeight: 600, color: T.textBright, background: T.amber,
+                      border: 'none', borderRadius: '6px', padding: '8px 20px', cursor: 'pointer',
+                    }}>Approve & Send Email →</button>
+                    <button onClick={() => {
+                      setEmailSubject(current.draft_subject || '');
+                      setEmailContent(current.draft_email || '');
+                      setShowSendEmail(true); setShowSendSms(false); setShowLogPanel(false);
+                    }} style={{
+                      fontSize: '10px', fontWeight: 500, color: T.textDim, background: 'none',
+                      border: `1px solid ${T.border}`, borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+                    }}>Edit First</button>
+                    <button onClick={() => {
+                      // Regenerate with Super AI into email compose
+                      setEmailSubject(current.draft_subject || '');
+                      setEmailContent('');
+                      setShowSendEmail(true); setShowSendSms(false); setShowLogPanel(false);
+                      setAiContext('intro');
+                      setTimeout(() => generateAiResponse('opus'), 100);
+                    }} style={{
+                      fontSize: '10px', fontWeight: 500, color: T.purple, background: 'none',
+                      border: `1px solid ${T.purple}20`, borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+                    }}>🧠 Rewrite with Super AI</button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick action buttons */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
                 {current.phone && (
