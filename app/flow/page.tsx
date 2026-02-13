@@ -608,7 +608,7 @@ export default function DealFlowPage() {
                         border: `1px solid ${T.purple}20`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
                       }}>Send as Email →</button>
                     )}
-                    <button onClick={generateAiResponse} style={{
+                    <button onClick={() => generateAiResponse('haiku')} style={{
                       fontSize: '10px', fontWeight: 500, color: T.textFaint, background: 'none',
                       border: 'none', cursor: 'pointer', padding: '4px 8px',
                     }}>Regenerate</button>
