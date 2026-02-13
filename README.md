@@ -180,3 +180,4 @@ Questions? Check:
 - Supabase docs: https://supabase.com/docs
 - Next.js docs: https://nextjs.org/docs
 - Vercel docs: https://vercel.com/docs
+
