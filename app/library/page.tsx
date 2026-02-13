@@ -4,60 +4,77 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Battle, Tier, Impact, Effort, Owner } from '@/lib/types';
 
-// ═══ DESIGN TOKENS ═══
+// ═══ DESIGN TOKENS v5 ═══
+// Warmer palette. Less grey death. More contrast.
 const T = {
-  bg: '#08090B',
-  surface: '#101114',
-  card: '#141619',
-  elevated: '#1A1D21',
-  glass: 'rgba(20,22,25,0.75)',
-  border: '#1E2126',
-  borderLit: '#2A2E34',
+  bg: '#0B0D10',
+  surface: '#12151A',
+  card: '#171B21',
+  elevated: '#1D2228',
+  glass: 'rgba(23,27,33,0.85)',
+  border: 'rgba(255,255,255,0.06)',
+  borderLit: 'rgba(255,255,255,0.10)',
+  borderBright: 'rgba(255,255,255,0.15)',
 
   blue: '#5A9CF5',
-  blueHot: '#6BABFF',
-  blueWash: 'rgba(90,156,245,0.05)',
-  blueBorder: 'rgba(90,156,245,0.12)',
-  blueGlow: 'rgba(90,156,245,0.06)',
+  blueHot: '#78B4FF',
+  blueWash: 'rgba(90,156,245,0.06)',
+  blueBorder: 'rgba(90,156,245,0.15)',
+  blueGlow: 'rgba(90,156,245,0.08)',
 
-  text: '#E4E6EA',
-  textBright: '#F7F8F9',
-  textMid: '#B0B5BE',
-  textDim: '#6E747F',
-  textFaint: '#3E434C',
+  // Warmer text - less grey, more cream
+  text: '#DFE1E5',
+  textBright: '#F2F3F5',
+  textMid: '#9DA3AE',
+  textDim: '#606878',
+  textFaint: '#3A4050',
 
-  green: '#34D07B',
-  red: '#F04B4B',
-  amber: '#E5A832',
-  purple: '#A97CF5',
+  // Vivid status colors
+  green: '#2DD881',
+  greenDim: 'rgba(45,216,129,0.12)',
+  red: '#FF5C5C',
+  redDim: 'rgba(255,92,92,0.12)',
+  amber: '#FFB340',
+  amberDim: 'rgba(255,179,64,0.12)',
+  purple: '#B07CFF',
+  purpleDim: 'rgba(176,124,255,0.12)',
 
   mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
+  radius: '10px',
 };
 
-const TIER_CONFIG: Record<Tier, { label: string; short: string; color: string; glow: string }> = {
-  now: { label: 'Sprint Now', short: 'NOW', color: T.red, glow: 'rgba(240,75,75,0.12)' },
-  soon: { label: 'Sprint Soon', short: 'SOON', color: T.amber, glow: 'rgba(229,168,50,0.12)' },
-  later: { label: 'Backlog', short: 'BACKLOG', color: T.blue, glow: 'rgba(90,156,245,0.08)' },
-  monitor: { label: 'Monitor', short: 'MONITOR', color: T.textFaint, glow: 'rgba(62,67,76,0.08)' },
+const TIER_CFG: Record<Tier, { label: string; color: string; bg: string }> = {
+  now: { label: 'NOW', color: T.red, bg: T.redDim },
+  soon: { label: 'SOON', color: T.amber, bg: T.amberDim },
+  later: { label: 'LATER', color: T.blue, bg: T.blueWash },
+  monitor: { label: 'MON', color: T.textDim, bg: 'rgba(96,104,120,0.08)' },
 };
 
-const IMPACT_COLOR: Record<Impact, string> = { C: T.red, H: T.amber, M: T.blue, L: T.textDim };
-const IMPACT_LABEL: Record<Impact, string> = { C: 'Critical', H: 'High', M: 'Medium', L: 'Low' };
-const EFFORT_COLOR: Record<Effort, string> = { L: T.green, M: T.amber, H: T.red };
-const EFFORT_LABEL: Record<Effort, string> = { L: 'Low', M: 'Medium', H: 'High' };
-const OWNER_LABEL: Record<Owner, string> = { t: 'Tomi', s: 'Schalaschly', b: 'Both', a: 'AI', n: '—' };
+const IMPACT_CFG: Record<Impact, { label: string; color: string; short: string }> = {
+  C: { label: 'Critical', color: T.red, short: 'CRIT' },
+  H: { label: 'High', color: T.amber, short: 'HIGH' },
+  M: { label: 'Medium', color: T.blue, short: 'MED' },
+  L: { label: 'Low', color: T.textDim, short: 'LOW' },
+};
 
-const CAT_ABBR: Record<string, string> = {
-  organic: 'ORG', live: 'LIVE', search: 'SRCH', paid: 'PAID', direct: 'DR',
-  referral: 'REF', partnerships: 'PRTN', marketplaces: 'MKTP', media: 'PR',
-  community: 'COMM', product: 'PROD', offline: 'OFF', darksocial: 'DARK',
+const EFFORT_CFG: Record<Effort, { label: string; color: string }> = {
+  L: { label: 'Low', color: T.green },
+  M: { label: 'Med', color: T.amber },
+  H: { label: 'High', color: T.red },
+};
+
+const OWNER_CFG: Record<Owner, { label: string; color: string }> = {
+  t: { label: 'Tomi', color: T.blueHot },
+  s: { label: 'Schala', color: T.purple },
+  b: { label: 'Both', color: T.amber },
+  a: { label: 'AI', color: T.green },
+  n: { label: '—', color: T.textFaint },
 };
 
 const CAT_LABEL: Record<string, string> = {
-  organic: 'Organic', live: 'Live & Community', search: 'Search & Intent',
-  paid: 'Paid Social', direct: 'Direct Response', referral: 'Referral',
-  partnerships: 'Partnerships', marketplaces: 'Marketplaces', media: 'Media & PR',
-  community: 'Community', product: 'Product-Led', offline: 'Offline', darksocial: 'Dark Social',
+  organic: 'Organic', live: 'Live', search: 'Search', paid: 'Paid', direct: 'Direct',
+  referral: 'Referral', partnerships: 'Partners', marketplaces: 'Market', media: 'Media',
+  community: 'Community', product: 'Product', offline: 'Offline', darksocial: 'Dark',
 };
 
 export default function LibraryPage() {
@@ -78,18 +95,21 @@ export default function LibraryPage() {
     setLoading(false);
   }
 
-  async function updateTier(battleId: number, newTier: Tier) {
+  async function updateField(id: number, field: string, value: string) {
     const { error } = await supabase.from('battles')
-      .update({ tier: newTier, updated_at: new Date().toISOString() })
-      .eq('id', battleId);
-    if (error) console.error('Error updating tier:', error);
-    else setBattles(prev => prev.map(b => b.id === battleId ? { ...b, tier: newTier } : b));
+      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) console.error(`Error updating ${field}:`, error);
+    else setBattles(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
   }
 
   const filtered = battles.filter(b => {
     if (filterCat !== 'all' && b.category !== filterCat) return false;
     if (filterTier !== 'all' && b.tier !== filterTier) return false;
-    if (search && !b.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      if (!b.name.toLowerCase().includes(s) && !b.category.toLowerCase().includes(s)) return false;
+    }
     return true;
   });
 
@@ -97,113 +117,148 @@ export default function LibraryPage() {
   const sorted = [...filtered].sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier));
   const counts = { now: 0, soon: 0, later: 0, monitor: 0 };
   battles.forEach(b => counts[b.tier]++);
-  const totalActive = counts.now + counts.soon;
   const categories = Array.from(new Set(battles.map(b => b.category))).sort();
 
   let lastTier: string | null = null;
 
+  // Pill component for inline selects
+  const Pill = ({ value, options, color, bg, onChange }: {
+    value: string; options: { value: string; label: string; color: string }[];
+    color: string; bg: string; onChange: (v: string) => void;
+  }) => (
+    <select value={value} onClick={e => e.stopPropagation()} onChange={e => onChange(e.target.value)}
+      style={{
+        fontSize: '10px', fontWeight: 700, color, background: bg,
+        border: `1px solid ${color}18`, borderRadius: '4px',
+        padding: '3px 6px', cursor: 'pointer', fontFamily: 'inherit',
+        outline: 'none', letterSpacing: '0.3px', appearance: 'none' as const,
+        WebkitAppearance: 'none' as const, textAlign: 'center' as const,
+        minWidth: '52px',
+      }}>
+      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ color: T.textDim, fontFamily: T.mono, fontSize: '13px' }}>Loading...</span>
+        <span style={{ color: T.textDim, fontFamily: T.mono, fontSize: '13px', animation: 'pulse 1.5s infinite' }}>Loading battles...</span>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: T.bg, position: 'relative' }}>
       <style>{`
-        @keyframes expandIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 600px; } }
+        @keyframes expandIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         select option { background: ${T.elevated}; color: ${T.text}; }
+        ::selection { background: ${T.blue}40; }
       `}</style>
 
-      {/* Cinematic background */}
-      <div style={{ position: 'fixed', top: '-20%', left: '30%', width: '60%', height: '60%', background: 'radial-gradient(ellipse, rgba(90,156,245,0.03) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)', pointerEvents: 'none', zIndex: 0 }} />
+      {/* Subtle blue atmosphere */}
+      <div style={{ position: 'fixed', top: '-30%', left: '20%', width: '60%', height: '50%', background: 'radial-gradient(ellipse, rgba(90,156,245,0.025) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <div style={{ padding: '36px 40px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-            <div>
-              <h1 style={{ fontSize: '22px', fontWeight: 600, color: T.textBright, letterSpacing: '-0.5px', marginBottom: '6px' }}>Battle Library</h1>
-              <p style={{ fontSize: '13px', color: T.textDim, fontWeight: 400 }}>Revenue channels ranked by strategic priority</p>
-            </div>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '1440px', margin: '0 auto', padding: '28px 32px 80px' }}>
 
-            {/* Hero stat cluster */}
-            <div style={{ display: 'flex', gap: '1px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${T.border}` }}>
-              <div style={{ background: T.blueWash, padding: '14px 24px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '2px', borderRight: `1px solid ${T.border}`, position: 'relative' as const }}>
-                <div style={{ position: 'absolute' as const, inset: 0, background: `radial-gradient(circle at center, ${T.blueGlow} 0%, transparent 70%)`, pointerEvents: 'none' as const }} />
-                <span style={{ fontSize: '28px', fontWeight: 800, color: T.blueHot, fontFamily: T.mono, lineHeight: 1, position: 'relative' as const }}>{totalActive}</span>
-                <span style={{ fontSize: '8px', fontWeight: 700, color: T.blue, letterSpacing: '1.5px', position: 'relative' as const }}>IN PLAY</span>
-              </div>
-              {tierOrder.map(k => {
-                const t = TIER_CONFIG[k];
-                const active = filterTier === k;
-                return (
-                  <button key={k} onClick={() => setFilterTier(filterTier === k ? 'all' : k)} style={{
-                    background: active ? t.glow : T.surface, border: 'none', padding: '14px 18px', cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '2px',
-                    borderRight: `1px solid ${T.border}`, transition: 'background 0.1s', minWidth: '64px',
-                  }}>
-                    <span style={{ fontSize: '18px', fontWeight: 700, color: active ? t.color : T.textMid, fontFamily: T.mono, lineHeight: 1 }}>{counts[k]}</span>
-                    <span style={{ fontSize: '8px', fontWeight: 700, color: active ? t.color : T.textFaint, letterSpacing: '1px' }}>{t.short}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* ═══ HEADER ═══ */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
+          <div>
+            <h1 style={{ fontSize: '20px', fontWeight: 650, color: T.textBright, letterSpacing: '-0.3px', marginBottom: '4px' }}>Battle Library</h1>
+            <p style={{ fontSize: '12px', color: T.textDim }}>95 revenue channels prioritized for execution</p>
           </div>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '220px' }}>
-              <input type="text" placeholder="Search channels..." value={search} onChange={e => setSearch(e.target.value)} style={{
-                width: '100%', padding: '9px 12px 9px 32px', background: T.surface, border: `1px solid ${T.border}`,
-                borderRadius: '8px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
-              }} />
-              <span style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: T.textFaint }}>⌕</span>
-            </div>
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
-              padding: '9px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: '8px',
-              fontSize: '12px', color: filterCat === 'all' ? T.textDim : T.textMid, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          {/* Tier stat bar */}
+          <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${T.border}` }}>
+            {/* IN PLAY hero */}
+            <div style={{
+              padding: '10px 20px', background: T.blueWash,
+              display: 'flex', alignItems: 'baseline', gap: '8px',
+              borderRight: `1px solid ${T.border}`,
             }}>
-              <option value="all">All Categories</option>
-              {categories.map(cat => <option key={cat} value={cat}>{CAT_LABEL[cat] || cat}</option>)}
-            </select>
-            {(search || filterCat !== 'all' || filterTier !== 'all') && (
-              <button onClick={() => { setSearch(''); setFilterCat('all'); setFilterTier('all'); }}
-                style={{ fontSize: '11px', color: T.textDim, background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>Clear filters</button>
-            )}
-            <span style={{ fontSize: '11px', color: T.textFaint, marginLeft: 'auto', fontFamily: T.mono }}>{filtered.length} channels</span>
-          </div>
-
-          {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 76px 76px 90px 72px 90px 24px', alignItems: 'center', padding: '0 20px 10px', gap: '8px', borderBottom: `1px solid ${T.border}` }}>
-            {['#', 'CHANNEL', 'IMPACT', 'EFFORT', 'OWNER', 'TYPE', 'PRIORITY', ''].map((h, i) => (
-              <span key={i} style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '1.2px' }}>{h}</span>
-            ))}
+              <span style={{ fontSize: '24px', fontWeight: 800, color: T.blueHot, fontFamily: T.mono, lineHeight: 1 }}>{counts.now + counts.soon}</span>
+              <span style={{ fontSize: '8px', fontWeight: 700, color: T.blue, letterSpacing: '1.2px' }}>IN PLAY</span>
+            </div>
+            {tierOrder.map(k => {
+              const cfg = TIER_CFG[k];
+              const active = filterTier === k;
+              return (
+                <button key={k} onClick={() => setFilterTier(filterTier === k ? 'all' : k)} style={{
+                  background: active ? cfg.bg : 'transparent', border: 'none',
+                  padding: '10px 14px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'baseline', gap: '6px',
+                  borderRight: `1px solid ${T.border}`, transition: 'background 0.1s',
+                }}>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: active ? cfg.color : T.textMid, fontFamily: T.mono, lineHeight: 1 }}>{counts[k]}</span>
+                  <span style={{ fontSize: '8px', fontWeight: 600, color: active ? cfg.color : T.textFaint, letterSpacing: '0.8px' }}>{cfg.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Rows */}
-        <div style={{ padding: '0 40px 100px' }}>
+        {/* ═══ FILTERS ═══ */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+          <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} style={{
+            width: '200px', padding: '7px 10px', background: T.surface, border: `1px solid ${T.border}`,
+            borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
+          }} />
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
+            padding: '7px 10px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: '6px',
+            fontSize: '12px', color: filterCat === 'all' ? T.textDim : T.text, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            <option value="all">All categories</option>
+            {categories.map(c => <option key={c} value={c}>{CAT_LABEL[c] || c}</option>)}
+          </select>
+          {(search || filterCat !== 'all' || filterTier !== 'all') && (
+            <button onClick={() => { setSearch(''); setFilterCat('all'); setFilterTier('all'); }}
+              style={{ fontSize: '11px', color: T.textDim, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Reset</button>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: '11px', color: T.textFaint, fontFamily: T.mono }}>{filtered.length}</span>
+        </div>
+
+        {/* ═══ TABLE ═══ */}
+        <div style={{ background: T.surface, borderRadius: T.radius, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '36px 1fr 70px 64px 64px 72px 70px 28px',
+            padding: '10px 16px', gap: '4px', alignItems: 'center',
+            borderBottom: `1px solid ${T.border}`, background: T.card,
+          }}>
+            {['#', 'CHANNEL', 'TIER', 'IMPACT', 'EFFORT', 'OWNER', 'TYPE', ''].map((h, i) => (
+              <span key={i} style={{ fontSize: '9px', fontWeight: 650, color: T.textFaint, letterSpacing: '1px', textTransform: 'uppercase' as const }}>{h}</span>
+            ))}
+          </div>
+
+          {/* Rows */}
           {sorted.length === 0 ? (
-            <div style={{ textAlign: 'center' as const, padding: '80px 0' }}>
-              <p style={{ fontSize: '14px', color: T.textDim }}>No channels match your filters</p>
+            <div style={{ padding: '60px', textAlign: 'center' as const }}>
+              <p style={{ fontSize: '13px', color: T.textDim }}>No channels match</p>
             </div>
           ) : sorted.map((b) => {
             const isExp = expanded === b.id;
             const isHov = hoverRow === b.id;
-            const tier = TIER_CONFIG[b.tier];
+            const tier = TIER_CFG[b.tier];
+            const impact = IMPACT_CFG[b.impact];
+            const effort = EFFORT_CFG[b.effort];
+            const owner = OWNER_CFG[b.owner];
 
+            // Tier section divider
             let divider = null;
             if (b.tier !== lastTier) {
               lastTier = b.tier;
               divider = (
-                <div key={`d-${b.tier}`} style={{ padding: '24px 0 10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: tier.color, boxShadow: `0 0 6px ${tier.color}40` }} />
-                  <span style={{ fontSize: '10px', fontWeight: 600, color: tier.color, letterSpacing: '1.5px', textTransform: 'uppercase' as const }}>{tier.label}</span>
-                  <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${tier.color}20, transparent 80%)` }} />
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '16px 16px 8px',
+                }}>
+                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: tier.color, boxShadow: `0 0 6px ${tier.color}50` }} />
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: tier.color, letterSpacing: '1.5px' }}>
+                    {tier.label === 'MON' ? 'MONITOR' : tier.label === 'NOW' ? 'SPRINT NOW' : tier.label === 'SOON' ? 'SPRINT SOON' : 'BACKLOG'}
+                    <span style={{ color: T.textFaint, marginLeft: '8px', fontWeight: 500 }}>({sorted.filter(x => x.tier === b.tier).length})</span>
+                  </span>
+                  <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${tier.color}15, transparent 60%)` }} />
                 </div>
               );
             }
@@ -215,65 +270,110 @@ export default function LibraryPage() {
                   onMouseEnter={() => setHoverRow(b.id)}
                   onMouseLeave={() => setHoverRow(null)}
                   style={{
-                    background: isExp ? T.card : isHov ? T.card : 'transparent',
-                    border: isExp ? `1px solid ${T.borderLit}` : '1px solid transparent',
-                    borderLeft: isExp ? `2px solid ${T.blue}` : isHov ? '2px solid rgba(90,156,245,0.2)' : '2px solid transparent',
-                    borderRadius: '12px', marginBottom: '1px', transition: 'all 0.12s ease',
+                    borderLeft: isExp ? `2px solid ${T.blue}` : isHov ? `2px solid ${T.blue}30` : '2px solid transparent',
+                    background: isExp ? T.card : isHov ? `${T.card}80` : 'transparent',
+                    transition: 'all 0.1s ease',
                   }}
                 >
+                  {/* Main row */}
                   <div onClick={() => setExpanded(isExp ? null : b.id)} style={{
-                    display: 'grid', gridTemplateColumns: '40px 1fr 76px 76px 90px 72px 90px 24px',
-                    alignItems: 'center', padding: '13px 20px', cursor: 'pointer', gap: '8px',
+                    display: 'grid',
+                    gridTemplateColumns: '36px 1fr 70px 64px 64px 72px 70px 28px',
+                    padding: '10px 14px', gap: '4px', alignItems: 'center', cursor: 'pointer',
                   }}>
-                    <span style={{ fontSize: '11px', color: T.textFaint, fontFamily: T.mono, fontWeight: 500 }}>{String(b.id).padStart(2, '0')}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 560, color: isExp || isHov ? T.textBright : T.text, transition: 'color 0.1s' }}>{b.name}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 550, color: IMPACT_COLOR[b.impact] }}>{IMPACT_LABEL[b.impact]}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 500, color: EFFORT_COLOR[b.effort] }}>{EFFORT_LABEL[b.effort]}</span>
-                    <span style={{ fontSize: '11px', color: T.textDim, fontWeight: 450 }}>{OWNER_LABEL[b.owner]}</span>
-                    <span style={{ fontSize: '10px', color: T.textFaint, fontWeight: 500, letterSpacing: '0.5px' }}>{CAT_ABBR[b.category] || b.category}</span>
-                    <select value={b.tier} onClick={e => e.stopPropagation()} onChange={e => updateTier(b.id, e.target.value as Tier)}
-                      style={{
-                        fontSize: '10px', fontWeight: 600, color: tier.color,
-                        background: tier.glow, border: `1px solid ${tier.color}20`,
-                        borderRadius: '5px', padding: '4px 6px', cursor: 'pointer',
-                        fontFamily: 'inherit', outline: 'none', letterSpacing: '0.3px',
-                      }}>
-                      {tierOrder.map(k => <option key={k} value={k}>{TIER_CONFIG[k].label}</option>)}
-                    </select>
+                    {/* # */}
+                    <span style={{ fontSize: '10px', color: T.textFaint, fontFamily: T.mono }}>{String(b.id).padStart(2, '0')}</span>
+
+                    {/* Channel name */}
                     <span style={{
-                      fontSize: '10px', color: T.textFaint, transition: 'transform 0.15s ease',
-                      transform: isExp ? 'rotate(90deg)' : 'none', textAlign: 'center' as const,
-                      opacity: isHov || isExp ? 1 : 0.4,
+                      fontSize: '13px', fontWeight: 550,
+                      color: isExp ? T.textBright : isHov ? T.textBright : T.text,
+                      transition: 'color 0.1s',
+                    }}>{b.name}</span>
+
+                    {/* Tier - editable */}
+                    <Pill
+                      value={b.tier}
+                      options={tierOrder.map(k => ({ value: k, label: TIER_CFG[k].label, color: TIER_CFG[k].color }))}
+                      color={tier.color} bg={tier.bg}
+                      onChange={v => updateField(b.id, 'tier', v)}
+                    />
+
+                    {/* Impact - editable */}
+                    <Pill
+                      value={b.impact}
+                      options={(['C', 'H', 'M', 'L'] as Impact[]).map(k => ({ value: k, label: IMPACT_CFG[k].short, color: IMPACT_CFG[k].color }))}
+                      color={impact.color} bg={`${impact.color}12`}
+                      onChange={v => updateField(b.id, 'impact', v)}
+                    />
+
+                    {/* Effort - editable */}
+                    <Pill
+                      value={b.effort}
+                      options={(['L', 'M', 'H'] as Effort[]).map(k => ({ value: k, label: EFFORT_CFG[k].label, color: EFFORT_CFG[k].color }))}
+                      color={effort.color} bg={`${effort.color}12`}
+                      onChange={v => updateField(b.id, 'effort', v)}
+                    />
+
+                    {/* Owner - editable */}
+                    <Pill
+                      value={b.owner}
+                      options={(['t', 's', 'b', 'a', 'n'] as Owner[]).map(k => ({ value: k, label: OWNER_CFG[k].label, color: OWNER_CFG[k].color }))}
+                      color={owner.color} bg={`${owner.color}10`}
+                      onChange={v => updateField(b.id, 'owner', v)}
+                    />
+
+                    {/* Category - display only */}
+                    <span style={{
+                      fontSize: '10px', fontWeight: 500, color: T.textDim,
+                      background: T.elevated, padding: '3px 6px', borderRadius: '4px',
+                      textAlign: 'center' as const, letterSpacing: '0.3px',
+                    }}>{CAT_LABEL[b.category] || b.category}</span>
+
+                    {/* Expand chevron */}
+                    <span style={{
+                      fontSize: '11px', color: isHov || isExp ? T.textMid : T.textFaint,
+                      transform: isExp ? 'rotate(90deg)' : 'none',
+                      transition: 'all 0.12s ease', textAlign: 'center' as const,
+                      display: 'inline-block',
                     }}>›</span>
                   </div>
 
+                  {/* Expanded detail panel */}
                   {isExp && (
-                    <div style={{ padding: '0px 22px 22px', animation: 'expandIn 0.2s ease' }}>
-                      <div style={{ height: '1px', background: `linear-gradient(90deg, ${T.blue}25, transparent 60%)`, marginBottom: '20px' }} />
+                    <div style={{ padding: '0 16px 18px 52px', animation: 'expandIn 0.15s ease' }}>
+                      {/* Blue gradient separator */}
+                      <div style={{ height: '1px', background: `linear-gradient(90deg, ${T.blue}20, transparent 50%)`, marginBottom: '16px' }} />
+
+                      {/* Strategic Rationale - full width */}
                       {b.why_this_tier && (
-                        <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: '8px', marginBottom: '12px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.textDim, letterSpacing: '1.5px', marginBottom: '10px' }}>STRATEGIC RATIONALE</div>
-                          <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.why_this_tier}</div>
+                        <div style={{ marginBottom: '10px', padding: '14px 16px', background: T.bg, borderRadius: '8px', border: `1px solid ${T.border}` }}>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.textDim, letterSpacing: '1.2px', marginBottom: '8px' }}>STRATEGIC RATIONALE</div>
+                          <div style={{ fontSize: '13px', color: T.text, lineHeight: 1.7 }}>{b.why_this_tier}</div>
                         </div>
                       )}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+
+                      {/* Two-column: Next Move + AI Leverage */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                         {b.next_action && (
-                          <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.blue}`, borderRadius: '8px' }}>
-                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.blue, letterSpacing: '1.5px', marginBottom: '10px' }}>NEXT MOVE</div>
-                            <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.next_action}</div>
+                          <div style={{ padding: '14px 16px', background: T.bg, borderRadius: '8px', border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.blue}` }}>
+                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.blue, letterSpacing: '1.2px', marginBottom: '8px' }}>NEXT MOVE</div>
+                            <div style={{ fontSize: '13px', color: T.text, lineHeight: 1.7 }}>{b.next_action}</div>
                           </div>
                         )}
                         {b.ai_play && (
-                          <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.amber}`, borderRadius: '8px' }}>
-                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.amber, letterSpacing: '1.5px', marginBottom: '10px' }}>AI LEVERAGE</div>
-                            <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.ai_play}</div>
+                          <div style={{ padding: '14px 16px', background: T.bg, borderRadius: '8px', border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.amber}` }}>
+                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.amber, letterSpacing: '1.2px', marginBottom: '8px' }}>AI LEVERAGE</div>
+                            <div style={{ fontSize: '13px', color: T.text, lineHeight: 1.7 }}>{b.ai_play}</div>
                           </div>
                         )}
                       </div>
+
+                      {/* Target Metric */}
                       {b.success_metric && (
-                        <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.green}`, borderRadius: '8px' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.green, letterSpacing: '1.5px', marginBottom: '10px' }}>TARGET METRIC</div>
-                          <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.success_metric}</div>
+                        <div style={{ padding: '14px 16px', background: T.bg, borderRadius: '8px', border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.green}` }}>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.green, letterSpacing: '1.2px', marginBottom: '8px' }}>TARGET METRIC</div>
+                          <div style={{ fontSize: '13px', color: T.text, lineHeight: 1.7 }}>{b.success_metric}</div>
                         </div>
                       )}
                     </div>

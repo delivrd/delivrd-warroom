@@ -4,94 +4,113 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from '@/lib/supabase';
 
+const T = {
+  bg: '#0B0D10',
+  surface: '#12151A',
+  border: 'rgba(255,255,255,0.06)',
+  blue: '#5A9CF5',
+  blueGlow: 'rgba(90,156,245,0.15)',
+  text: '#DFE1E5',
+  textBright: '#F2F3F5',
+  textMid: '#9DA3AE',
+  textDim: '#606878',
+  textFaint: '#3A4050',
+  green: '#2DD881',
+};
+
+const NAV_LINKS = [
+  { href: '/library', label: 'Library' },
+  { href: '/sprints', label: 'Sprints' },
+  { href: '/map', label: 'Map' },
+  { href: '/pipeline', label: 'Pipeline' },
+  { href: '/contacts', label: 'Contacts' },
+];
+
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
+
+  if (pathname === '/login') return null;
 
   const handleLogout = async () => {
     await signOut();
     router.push('/login');
   };
 
-  const links = [
-    { href: '/library', label: 'Library' },
-    { href: '/sprints', label: 'Execution' },
-    { href: '/map', label: 'Map' },
-    { href: '/pipeline', label: 'Pipeline' },
-    { href: '/contacts', label: 'Contacts' },
-  ];
-
   return (
-    <nav 
-      className="sticky top-0 z-50 border-b border-war-border"
-      style={{
-        background: 'rgba(10,10,11,0.85)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-      }}
-    >
-      <div className="max-w-[1600px] mx-auto px-10">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo */}
-          <div className="flex items-center gap-5">
-            <span className="text-[26px] font-bold tracking-tight text-war-blue">
-              DELIVRD
-            </span>
-            <div className="w-px h-6 bg-war-border" />
-            <span className="text-label font-semibold tracking-tight text-text-mid">
-              War Room
-            </span>
-            {/* Live indicator */}
-            <div className="flex items-center gap-2.5 ml-1">
-              <span 
-                className="w-2 h-2 rounded-full animate-pulse shadow-lg" 
-                style={{ background: '#34c759', boxShadow: '0 0 8px rgba(52,199,89,0.4)' }}
-              />
-              <span className="text-micro font-bold font-mono text-status-green">
-                LIVE
-              </span>
-            </div>
-          </div>
+    <nav style={{
+      position: 'sticky', top: 0, zIndex: 50,
+      background: 'rgba(11,13,16,0.88)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderBottom: `1px solid ${T.border}`,
+    }}>
+      {/* Top accent line */}
+      <div style={{
+        height: '2px',
+        background: `linear-gradient(90deg, transparent 10%, ${T.blue}40 50%, transparent 90%)`,
+      }} />
 
-          {/* Navigation */}
-          <div className="flex items-center gap-10">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-label font-semibold tracking-tight transition-colors relative py-1"
-                  style={{ 
-                    color: isActive ? '#f5f5f7' : '#8e8e93'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#f5f5f7';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#8e8e93';
-                  }}
-                >
-                  {link.label}
-                  {isActive && (
-                    <div 
-                      className="absolute -bottom-5 left-0 right-0 h-0.5 rounded-full"
-                      style={{ background: '#0066ff', boxShadow: '0 0 8px rgba(0,102,255,0.4)' }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-            
-            <div className="w-px h-6 bg-war-border" />
-            
-            <button
-              onClick={handleLogout}
-              className="text-label font-semibold tracking-tight transition-colors text-text-dim hover:text-text-bright"
-            >
-              Sign Out
-            </button>
+      <div style={{
+        maxWidth: '1440px', margin: '0 auto', padding: '0 32px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        height: '52px',
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <img
+            src="https://cdn.prod.website-files.com/64385d3c78af797e73f21562/65e919896fc3669ecfe1d74b_Delivrd_2024_white_long%404x.png"
+            alt="Delivrd"
+            style={{ height: '18px', opacity: 0.95 }}
+          />
+          <div style={{ width: '1px', height: '16px', background: T.border }} />
+          <span style={{ fontSize: '11px', fontWeight: 600, color: T.textDim, letterSpacing: '0.5px' }}>War Room</span>
+          {/* Live dot */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: '4px' }}>
+            <div style={{
+              width: '5px', height: '5px', borderRadius: '50%',
+              background: T.green, boxShadow: `0 0 6px ${T.green}60`,
+              animation: 'pulse 2s infinite',
+            }} />
           </div>
+        </div>
+
+        {/* Navigation links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {NAV_LINKS.map(link => {
+            const active = pathname === link.href || (link.href !== '/' && pathname?.startsWith(link.href));
+            return (
+              <Link key={link.href} href={link.href} style={{
+                padding: '6px 14px',
+                fontSize: '12px', fontWeight: active ? 600 : 450,
+                color: active ? T.textBright : T.textDim,
+                textDecoration: 'none',
+                borderRadius: '6px',
+                background: active ? T.blueGlow : 'transparent',
+                border: active ? `1px solid ${T.blue}15` : '1px solid transparent',
+                transition: 'all 0.12s ease',
+                letterSpacing: '-0.1px',
+              }}
+              onMouseEnter={e => { if (!active) { (e.target as HTMLElement).style.color = T.textMid; (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}}
+              onMouseLeave={e => { if (!active) { (e.target as HTMLElement).style.color = T.textDim; (e.target as HTMLElement).style.background = 'transparent'; }}}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+
+          <div style={{ width: '1px', height: '16px', background: T.border, margin: '0 8px' }} />
+
+          <button onClick={handleLogout} style={{
+            fontSize: '11px', fontWeight: 450, color: T.textFaint,
+            background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px',
+            transition: 'color 0.12s',
+          }}
+          onMouseEnter={e => (e.target as HTMLElement).style.color = T.textDim}
+          onMouseLeave={e => (e.target as HTMLElement).style.color = T.textFaint}
+          >
+            Sign Out
+          </button>
         </div>
       </div>
     </nav>
