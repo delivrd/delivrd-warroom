@@ -154,23 +154,31 @@ export default function PipelinePage() {
                 {/* Column header */}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 12px', marginBottom: '8px',
+                  padding: '10px 14px', marginBottom: '8px',
+                  background: `${cfg.color}08`,
+                  borderRadius: '8px 8px 0 0',
                   borderBottom: `2px solid ${cfg.color}`,
                 }}>
-                  <span style={{ fontSize: '11px', fontWeight: 650, color: cfg.color, letterSpacing: '0.5px' }}>{cfg.label.toUpperCase()}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: T.textDim, fontFamily: T.mono }}>{stageContacts.length}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: cfg.color, letterSpacing: '0.5px' }}>{cfg.label.toUpperCase()}</span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 800, color: stageContacts.length > 0 ? cfg.color : T.textFaint,
+                    fontFamily: T.mono, background: stageContacts.length > 0 ? `${cfg.color}15` : 'transparent',
+                    padding: '1px 6px', borderRadius: '4px',
+                  }}>{stageContacts.length}</span>
                 </div>
 
                 {/* Drop zone */}
                 <div style={{
-                  minHeight: '400px', borderRadius: '8px',
-                  background: isDrop ? `${cfg.color}08` : 'transparent',
-                  border: isDrop ? `1px dashed ${cfg.color}30` : '1px solid transparent',
-                  transition: 'all 0.15s ease', padding: '4px',
+                  minHeight: '400px', borderRadius: '0 0 8px 8px',
+                  background: isDrop ? `${cfg.color}08` : T.surface,
+                  border: isDrop ? `1px dashed ${cfg.color}40` : `1px solid ${T.border}`,
+                  borderTop: 'none',
+                  transition: 'all 0.15s ease', padding: '6px',
                 }}>
                   {stageContacts.length === 0 && !isDrop && (
-                    <div style={{ padding: '32px 12px', textAlign: 'center' as const }}>
-                      <p style={{ fontSize: '11px', color: T.textFaint }}>No contacts</p>
+                    <div style={{ padding: '40px 12px', textAlign: 'center' as const }}>
+                      <div style={{ fontSize: '24px', opacity: 0.15, marginBottom: '8px' }}>+</div>
+                      <p style={{ fontSize: '10px', color: T.textFaint }}>Drag here or add new</p>
                     </div>
                   )}
 
