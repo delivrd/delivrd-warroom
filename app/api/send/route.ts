@@ -8,11 +8,10 @@ const getSupabase = () => {
   return createClient(url, key);
 };
 
-const QUO_API_KEY = process.env.QUO_API_KEY || '';
-const QUO_FROM_NUMBER = process.env.QUO_FROM_NUMBER || '+19804462514';
-const GMAIL_SCRIPT_URL = process.env.GMAIL_SCRIPT_URL || '';
-
 export async function POST(request: Request) {
+  const QUO_API_KEY = process.env.QUO_API_KEY || '';
+  const QUO_FROM_NUMBER = process.env.QUO_FROM_NUMBER || '+19804462514';
+  const GMAIL_SCRIPT_URL = process.env.GMAIL_SCRIPT_URL || '';
   try {
     const body = await request.json();
     const { type, contact_id, to, content, subject } = body;
