@@ -514,30 +514,89 @@ function DetailField({ label, value, onSave, full }: { label: string; value: str
 function AddModal({ onAdd, onClose }: { onAdd: (d: Partial<Contact>) => void; onClose: () => void }) {
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', email: '',
-    vehicle_interest: '', source: 'manual' as Contact['source'],
-    timeline: '', budget_range: '', pipeline_stage: 'new' as PipelineStage,
+    vehicle_interest: '', vehicle_make: '', source: 'manual' as Contact['source'],
+    source_detail: '', timeline: '', budget_range: '', notes: '',
+    assigned_to: '', pipeline_stage: 'new' as PipelineStage, lead_score: 0,
   });
   const set = (f: string, v: string) => setForm(prev => ({ ...prev, [f]: v }));
+
+  const SOURCES = ['manual', 'tiktok', 'instagram', 'youtube', 'manychat', 'quo', 'referral', 'website', 'email'];
+  const OWNERS = [{ value: '', label: 'Unassigned' }, { value: 'tomi', label: 'Tomi' }, { value: 'schalaschly', label: 'Schalaschly' }];
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
         background: T.surface, borderRadius: '12px', border: `1px solid ${T.borderLit}`,
-        width: '440px', boxShadow: '0 24px 48px rgba(0,0,0,0.4)', padding: '24px',
+        width: '520px', maxHeight: '85vh', overflowY: 'auto' as const,
+        boxShadow: '0 24px 48px rgba(0,0,0,0.4)', padding: '24px',
       }}>
         <div style={{ fontSize: '15px', fontWeight: 600, color: T.textBright, marginBottom: '20px' }}>New Contact</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+
+        {/* Contact info */}
+        <div style={{ fontSize: '9px', fontWeight: 700, color: T.textFaint, letterSpacing: '1.2px', marginBottom: '8px' }}>CONTACT INFO</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
           <ModalField label="First Name" value={form.first_name} onChange={v => set('first_name', v)} autoFocus />
           <ModalField label="Last Name" value={form.last_name} onChange={v => set('last_name', v)} />
-          <ModalField label="Phone" value={form.phone} onChange={v => set('phone', v)} />
-          <ModalField label="Email" value={form.email} onChange={v => set('email', v)} />
-          <ModalField label="Vehicle Interest" value={form.vehicle_interest} onChange={v => set('vehicle_interest', v)} full />
-          <ModalField label="Timeline" value={form.timeline} onChange={v => set('timeline', v)} />
-          <ModalField label="Budget" value={form.budget_range} onChange={v => set('budget_range', v)} />
+          <ModalField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="(555) 123-4567" />
+          <ModalField label="Email" value={form.email} onChange={v => set('email', v)} placeholder="name@email.com" />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+
+        {/* Vehicle info */}
+        <div style={{ fontSize: '9px', fontWeight: 700, color: T.textFaint, letterSpacing: '1.2px', marginBottom: '8px' }}>VEHICLE</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+          <ModalField label="Vehicle Interest" value={form.vehicle_interest} onChange={v => set('vehicle_interest', v)} placeholder="e.g. 2024 BMW X5" full />
+          <ModalField label="Make" value={form.vehicle_make} onChange={v => set('vehicle_make', v)} placeholder="e.g. BMW" />
+          <ModalField label="Budget Range" value={form.budget_range} onChange={v => set('budget_range', v)} placeholder="e.g. $40-60k" />
+        </div>
+
+        {/* Sales info */}
+        <div style={{ fontSize: '9px', fontWeight: 700, color: T.textFaint, letterSpacing: '1.2px', marginBottom: '8px' }}>SALES</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+          <div>
+            <div style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '0.8px', marginBottom: '4px' }}>SOURCE</div>
+            <select value={form.source} onChange={e => set('source', e.target.value)} style={{
+              width: '100%', padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`,
+              borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
+            }}>
+              {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABEL[s] || s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            </select>
+          </div>
+          <ModalField label="Source Detail" value={form.source_detail} onChange={v => set('source_detail', v)} placeholder="e.g. TikTok DM, referral name" />
+          <ModalField label="Timeline" value={form.timeline} onChange={v => set('timeline', v)} placeholder="e.g. This month, 1-3 months" />
+          <div>
+            <div style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '0.8px', marginBottom: '4px' }}>ASSIGNED TO</div>
+            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} style={{
+              width: '100%', padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`,
+              borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
+            }}>
+              {OWNERS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '0.8px', marginBottom: '4px' }}>NOTES</div>
+          <textarea value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Initial conversation details, special requests..."
+            rows={3} style={{
+              width: '100%', padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`,
+              borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
+              resize: 'vertical' as const, lineHeight: 1.6,
+            }} />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <button onClick={onClose} style={{ fontSize: '12px', color: T.textDim, background: 'none', border: `1px solid ${T.border}`, borderRadius: '6px', padding: '8px 16px', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={() => { if (form.first_name || form.phone) onAdd(form); }} style={{ fontSize: '12px', fontWeight: 600, color: T.textBright, background: T.blue, border: 'none', borderRadius: '6px', padding: '8px 18px', cursor: 'pointer' }}>Add</button>
+          <button onClick={() => {
+            if (form.first_name || form.phone) {
+              const data: Record<string, any> = { ...form };
+              if (!data.assigned_to) delete data.assigned_to;
+              if (!data.notes) delete data.notes;
+              if (!data.source_detail) delete data.source_detail;
+              if (!data.vehicle_make) delete data.vehicle_make;
+              onAdd(data);
+            }
+          }} style={{ fontSize: '12px', fontWeight: 600, color: T.textBright, background: T.blue, border: 'none', borderRadius: '6px', padding: '8px 18px', cursor: 'pointer' }}>Add Contact</button>
         </div>
       </div>
     </div>
