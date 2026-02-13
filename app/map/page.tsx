@@ -1,53 +1,16 @@
 'use client';
+import { useTheme } from '@/lib/theme';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Battle, Tier } from '@/lib/types';
 
-const T = {
-  bg: '#0B0D10',
-  surface: '#12151A',
-  card: '#171B21',
-  elevated: '#1D2228',
-  border: 'rgba(255,255,255,0.06)',
-  borderLit: 'rgba(255,255,255,0.10)',
 
-  blue: '#5A9CF5',
-  blueHot: '#78B4FF',
-  blueWash: 'rgba(90,156,245,0.06)',
-  blueBorder: 'rgba(90,156,245,0.15)',
-
-  text: '#DFE1E5',
-  textBright: '#F2F3F5',
-  textMid: '#9DA3AE',
-  textDim: '#606878',
-  textFaint: '#3A4050',
-
-  green: '#2DD881',
-  greenDim: 'rgba(45,216,129,0.12)',
-  red: '#FF5C5C',
-  redDim: 'rgba(255,92,92,0.12)',
-  amber: '#FFB340',
-  amberDim: 'rgba(255,179,64,0.12)',
-  purple: '#B07CFF',
-  purpleDim: 'rgba(176,124,255,0.12)',
-
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-};
-
-const TIER_CFG: Record<Tier, { label: string; color: string; bg: string }> = {
-  now: { label: 'NOW', color: T.red, bg: T.redDim },
-  soon: { label: 'SOON', color: T.amber, bg: T.amberDim },
-  later: { label: 'LATER', color: T.blue, bg: T.blueWash },
-  monitor: { label: 'MON', color: T.textDim, bg: 'rgba(96,104,120,0.06)' },
-};
-
-// ═══ STRATEGIC ZONES ═══
 // 4 zones containing 13 fronts
 interface Front {
   id: string;
   name: string;
-  category: string; // maps to battle.category
+  category: string;
   description: string;
   icon: string;
 }
@@ -61,59 +24,56 @@ interface Zone {
   fronts: Front[];
 }
 
-const ZONES: Zone[] = [
-  {
-    id: 'owned',
-    name: 'Owned Media',
-    color: T.blue,
-    colorDim: T.blueWash,
-    description: 'Channels you control. Your content, your audience.',
-    fronts: [
-      { id: 'organic', name: 'Organic Social', category: 'organic', description: 'TikTok, Instagram, YouTube, Facebook, LinkedIn', icon: '📱' },
-      { id: 'live', name: 'Live Channels', category: 'live', description: 'TikTok Live, YouTube Live, Instagram Live', icon: '🔴' },
-      { id: 'direct', name: 'Direct Response', category: 'direct', description: 'Email, SMS, Lead Magnets, Scripts', icon: '📨' },
-      { id: 'product', name: 'Product-Led', category: 'product', description: 'Negotiation tools, scripts, downloads', icon: '🛠' },
-    ],
-  },
-  {
-    id: 'discovery',
-    name: 'Discovery',
-    color: T.green,
-    colorDim: T.greenDim,
-    description: 'Getting found when people search.',
-    fronts: [
-      { id: 'search', name: 'Search', category: 'search', description: 'Google, YouTube SEO, TikTok SEO', icon: '🔍' },
-      { id: 'marketplaces', name: 'Marketplaces', category: 'marketplaces', description: 'Facebook Marketplace, Angi', icon: '🏪' },
-    ],
-  },
-  {
-    id: 'amplified',
-    name: 'Amplified',
-    color: T.amber,
-    colorDim: T.amberDim,
-    description: 'Paid and earned reach beyond your audience.',
-    fronts: [
-      { id: 'paid', name: 'Paid Ads', category: 'paid', description: 'Facebook, Google, YouTube, TikTok Ads', icon: '💰' },
-      { id: 'referral', name: 'Referrals', category: 'referral', description: 'Structured referral programs, testimonials', icon: '🤝' },
-      { id: 'partnerships', name: 'Partnerships', category: 'partnerships', description: 'Auto YouTubers, finance blogs', icon: '🔗' },
-      { id: 'media', name: 'Media & PR', category: 'media', description: 'Press releases, podcast appearances', icon: '📰' },
-    ],
-  },
-  {
-    id: 'longterm',
-    name: 'Long-term',
-    color: T.purple,
-    colorDim: T.purpleDim,
-    description: 'Community building and offline presence.',
-    fronts: [
-      { id: 'community', name: 'Community', category: 'community', description: 'Slack, forums, meetup groups', icon: '👥' },
-      { id: 'offline', name: 'Offline', category: 'offline', description: 'Direct mail, billboards, radio', icon: '📮' },
-      { id: 'darksocial', name: 'Dark Social', category: 'darksocial', description: 'Word of mouth, private shares', icon: '🌑' },
-    ],
-  },
-];
-
 export default function MapPage() {
+  const { theme: T, mode } = useTheme();
+
+  const TIER_CFG: Record<Tier, { label: string; color: string; bg: string }> = {
+    now: { label: 'NOW', color: T.red, bg: T.redDim },
+    soon: { label: 'SOON', color: T.amber, bg: T.amberDim },
+    later: { label: 'LATER', color: T.blue, bg: T.blueWash },
+    monitor: { label: 'MON', color: T.textDim, bg: 'rgba(96,104,120,0.06)' },
+  };
+
+  const ZONES: Zone[] = [
+    {
+      id: 'owned', name: 'Owned Media', color: T.blue, colorDim: T.blueWash,
+      description: 'Channels you control. Your content, your audience.',
+      fronts: [
+        { id: 'organic', name: 'Organic Social', category: 'organic', description: 'TikTok, Instagram, YouTube, Facebook, LinkedIn', icon: '📱' },
+        { id: 'live', name: 'Live Channels', category: 'live', description: 'TikTok Live, YouTube Live, Instagram Live', icon: '🔴' },
+        { id: 'direct', name: 'Direct Response', category: 'direct', description: 'Email, SMS, Lead Magnets, Scripts', icon: '📨' },
+        { id: 'product', name: 'Product-Led', category: 'product', description: 'Negotiation tools, scripts, downloads', icon: '🛠' },
+      ],
+    },
+    {
+      id: 'discovery', name: 'Discovery', color: T.green, colorDim: T.greenDim,
+      description: 'Getting found when people search.',
+      fronts: [
+        { id: 'search', name: 'Search', category: 'search', description: 'Google, YouTube SEO, TikTok SEO', icon: '🔍' },
+        { id: 'marketplaces', name: 'Marketplaces', category: 'marketplaces', description: 'Facebook Marketplace, Angi', icon: '🏪' },
+      ],
+    },
+    {
+      id: 'amplified', name: 'Amplified', color: T.amber, colorDim: T.amberDim,
+      description: 'Paid and earned reach beyond your audience.',
+      fronts: [
+        { id: 'paid', name: 'Paid Ads', category: 'paid', description: 'Facebook, Google, YouTube, TikTok Ads', icon: '💰' },
+        { id: 'referral', name: 'Referrals', category: 'referral', description: 'Structured referral programs, testimonials', icon: '🤝' },
+        { id: 'partnerships', name: 'Partnerships', category: 'partnerships', description: 'Auto YouTubers, finance blogs', icon: '🔗' },
+        { id: 'media', name: 'Media & PR', category: 'media', description: 'Press releases, podcast appearances', icon: '📰' },
+      ],
+    },
+    {
+      id: 'longterm', name: 'Long-term', color: T.purple, colorDim: T.purpleDim,
+      description: 'Community building and offline presence.',
+      fronts: [
+        { id: 'community', name: 'Community', category: 'community', description: 'Slack, forums, meetup groups', icon: '👥' },
+        { id: 'offline', name: 'Offline', category: 'offline', description: 'Direct mail, billboards, radio', icon: '📮' },
+        { id: 'darksocial', name: 'Dark Social', category: 'darksocial', description: 'Word of mouth, private shares', icon: '🌑' },
+      ],
+    },
+  ];
+
   const [battles, setBattles] = useState<Battle[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedFront, setExpandedFront] = useState<string | null>(null);

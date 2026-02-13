@@ -4,20 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Contact, PipelineStage, Communication } from '@/lib/types/crm';
 import { PIPELINE_STAGES, getStageConfig } from '@/lib/types/crm';
+import { useTheme } from '@/lib/theme';
 
-const T = {
-  bg: '#0B0D10', surface: '#12151A', card: '#171B21', elevated: '#1D2228',
-  border: 'rgba(255,255,255,0.06)', borderLit: 'rgba(255,255,255,0.10)',
-  blue: '#5A9CF5', blueHot: '#78B4FF', blueWash: 'rgba(90,156,245,0.06)',
-  blueBorder: 'rgba(90,156,245,0.15)', blueGlow: 'rgba(90,156,245,0.08)',
-  text: '#DFE1E5', textBright: '#F2F3F5', textMid: '#9DA3AE',
-  textDim: '#606878', textFaint: '#3A4050',
-  green: '#2DD881', greenDim: 'rgba(45,216,129,0.12)',
-  red: '#FF5C5C', redDim: 'rgba(255,92,92,0.12)',
-  amber: '#FFB340', amberDim: 'rgba(255,179,64,0.12)',
-  purple: '#B07CFF', purpleDim: 'rgba(176,124,255,0.12)',
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-};
 
 const STAGE_COLOR: Record<PipelineStage, string> = {
   new: '#9DA3AE', contacted: '#5A9CF5', qualified: '#B07CFF',
@@ -33,6 +21,7 @@ const SOURCE_LABEL: Record<string, string> = {
 type CommType = 'sms' | 'call' | 'email' | 'note';
 
 export default function DealFlowPage() {
+  const { theme: T, mode } = useTheme();
   const [queue, setQueue] = useState<Contact[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [comms, setComms] = useState<Communication[]>([]);
@@ -623,7 +612,7 @@ export default function DealFlowPage() {
                     fontFamily: 'inherit', marginBottom: '6px',
                   }} />
                 <textarea value={emailContent} onChange={e => setEmailContent(e.target.value)}
-                  placeholder="Type your email or generate with AI above..." rows={5} autoFocus
+                  placeholder="Type your email or generate with AI above..." rows={10} autoFocus
                   style={{
                     width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
                     borderRadius: '6px', fontSize: '13px', color: T.text, outline: 'none',
@@ -738,7 +727,7 @@ export default function DealFlowPage() {
               <div style={{ fontSize: '10px', fontWeight: 700, color: T.textFaint, letterSpacing: '1px', marginBottom: '8px' }}>NOTES</div>
               <textarea defaultValue={current.notes || ''} key={current.id}
                 onBlur={e => updateContact('notes', e.target.value)}
-                placeholder="Deal notes..." rows={3}
+                placeholder="Deal notes..." rows={8}
                 style={{
                   width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
                   borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none',

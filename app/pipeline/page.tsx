@@ -1,23 +1,11 @@
 'use client';
+import { useTheme } from '@/lib/theme';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Contact, PipelineStage } from '@/lib/types/crm';
 import { PIPELINE_STAGES, getStageConfig } from '@/lib/types/crm';
 
-const T = {
-  bg: '#0B0D10', surface: '#12151A', card: '#171B21', elevated: '#1D2228',
-  border: 'rgba(255,255,255,0.06)', borderLit: 'rgba(255,255,255,0.10)',
-  blue: '#5A9CF5', blueHot: '#78B4FF', blueWash: 'rgba(90,156,245,0.06)',
-  blueBorder: 'rgba(90,156,245,0.15)',
-  text: '#DFE1E5', textBright: '#F2F3F5', textMid: '#9DA3AE',
-  textDim: '#606878', textFaint: '#3A4050',
-  green: '#2DD881', greenDim: 'rgba(45,216,129,0.12)',
-  red: '#FF5C5C', redDim: 'rgba(255,92,92,0.12)',
-  amber: '#FFB340', amberDim: 'rgba(255,179,64,0.12)',
-  purple: '#B07CFF',
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-};
 
 const STAGE_COLOR: Record<PipelineStage, string> = {
   new: '#9DA3AE', contacted: '#5A9CF5', qualified: '#B07CFF',
@@ -34,6 +22,7 @@ type SortField = 'score' | 'name' | 'created' | 'updated' | 'stage' | 'follow_up
 type SortDir = 'asc' | 'desc';
 
 export default function PipelinePage() {
+  const { theme: T, mode } = useTheme();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -418,6 +407,7 @@ export default function PipelinePage() {
 
 // ═══ DETAIL PANEL ═══
 function DetailPanel({ contact, onClose }: { contact: Contact; onClose: () => void }) {
+  const { theme: T } = useTheme();
   const [form, setForm] = useState(contact);
 
   const save = async (field: string, value: any) => {
@@ -497,6 +487,7 @@ function DetailPanel({ contact, onClose }: { contact: Contact; onClose: () => vo
 }
 
 function DetailField({ label, value, onSave, full }: { label: string; value: string; onSave: (v: string) => void; full?: boolean }) {
+  const { theme: T } = useTheme();
   const [val, setVal] = useState(value);
   return (
     <div style={{ gridColumn: full ? 'span 2' : undefined }}>
@@ -512,6 +503,7 @@ function DetailField({ label, value, onSave, full }: { label: string; value: str
 
 // ═══ ADD MODAL ═══
 function AddModal({ onAdd, onClose }: { onAdd: (d: Partial<Contact>) => void; onClose: () => void }) {
+  const { theme: T } = useTheme();
   const [form, setForm] = useState({
     first_name: '', last_name: '', phone: '', email: '',
     vehicle_interest: '', vehicle_make: '', source: 'manual' as Contact['source'],
@@ -606,6 +598,7 @@ function AddModal({ onAdd, onClose }: { onAdd: (d: Partial<Contact>) => void; on
 function ModalField({ label, value, onChange, autoFocus, full, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; autoFocus?: boolean; full?: boolean; placeholder?: string;
 }) {
+  const { theme: T } = useTheme();
   return (
     <div style={{ gridColumn: full ? 'span 2' : undefined }}>
       <div style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '0.8px', marginBottom: '4px' }}>{label.toUpperCase()}</div>
@@ -617,6 +610,7 @@ function ModalField({ label, value, onChange, autoFocus, full, placeholder }: {
 
 // ═══ CSV IMPORT MODAL ═══
 function ImportModal({ onDone }: { onDone: () => void }) {
+  const { theme: T } = useTheme();
   const [status, setStatus] = useState<'ready' | 'importing' | 'done' | 'error'>('ready');
   const [count, setCount] = useState(0);
   const [error, setError] = useState('');

@@ -1,75 +1,11 @@
 'use client';
+import { useTheme } from '@/lib/theme';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Battle, Tier, Impact, Effort, Owner } from '@/lib/types';
 
 // ═══ DESIGN TOKENS v5 ═══
-// Warmer palette. Less grey death. More contrast.
-const T = {
-  bg: '#0B0D10',
-  surface: '#12151A',
-  card: '#171B21',
-  elevated: '#1D2228',
-  glass: 'rgba(23,27,33,0.85)',
-  border: 'rgba(255,255,255,0.06)',
-  borderLit: 'rgba(255,255,255,0.10)',
-  borderBright: 'rgba(255,255,255,0.15)',
-
-  blue: '#5A9CF5',
-  blueHot: '#78B4FF',
-  blueWash: 'rgba(90,156,245,0.06)',
-  blueBorder: 'rgba(90,156,245,0.15)',
-  blueGlow: 'rgba(90,156,245,0.08)',
-
-  // Warmer text - less grey, more cream
-  text: '#DFE1E5',
-  textBright: '#F2F3F5',
-  textMid: '#9DA3AE',
-  textDim: '#606878',
-  textFaint: '#3A4050',
-
-  // Vivid status colors
-  green: '#2DD881',
-  greenDim: 'rgba(45,216,129,0.12)',
-  red: '#FF5C5C',
-  redDim: 'rgba(255,92,92,0.12)',
-  amber: '#FFB340',
-  amberDim: 'rgba(255,179,64,0.12)',
-  purple: '#B07CFF',
-  purpleDim: 'rgba(176,124,255,0.12)',
-
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-  radius: '10px',
-};
-
-const TIER_CFG: Record<Tier, { label: string; color: string; bg: string }> = {
-  now: { label: 'NOW', color: T.red, bg: T.redDim },
-  soon: { label: 'SOON', color: T.amber, bg: T.amberDim },
-  later: { label: 'LATER', color: T.blue, bg: T.blueWash },
-  monitor: { label: 'MON', color: T.textDim, bg: 'rgba(96,104,120,0.08)' },
-};
-
-const IMPACT_CFG: Record<Impact, { label: string; color: string; short: string }> = {
-  C: { label: 'Critical', color: T.red, short: 'CRIT' },
-  H: { label: 'High', color: T.amber, short: 'HIGH' },
-  M: { label: 'Medium', color: T.blue, short: 'MED' },
-  L: { label: 'Low', color: T.textDim, short: 'LOW' },
-};
-
-const EFFORT_CFG: Record<Effort, { label: string; color: string }> = {
-  L: { label: 'Low', color: T.green },
-  M: { label: 'Med', color: T.amber },
-  H: { label: 'High', color: T.red },
-};
-
-const OWNER_CFG: Record<Owner, { label: string; color: string }> = {
-  t: { label: 'Tomi', color: T.blueHot },
-  s: { label: 'Schala', color: T.purple },
-  b: { label: 'Both', color: T.amber },
-  a: { label: 'AI', color: T.green },
-  n: { label: '—', color: T.textFaint },
-};
 
 const CAT_LABEL: Record<string, string> = {
   organic: 'Organic', live: 'Live', search: 'Search', paid: 'Paid', direct: 'Direct',
@@ -78,6 +14,35 @@ const CAT_LABEL: Record<string, string> = {
 };
 
 export default function LibraryPage() {
+  const { theme: T, mode } = useTheme();
+
+  const TIER_CFG: Record<Tier, { label: string; color: string; bg: string }> = {
+    now: { label: 'NOW', color: T.red, bg: T.redDim },
+    soon: { label: 'SOON', color: T.amber, bg: T.amberDim },
+    later: { label: 'LATER', color: T.blue, bg: T.blueWash },
+    monitor: { label: 'MON', color: T.textDim, bg: 'rgba(96,104,120,0.08)' },
+  };
+
+  const IMPACT_CFG: Record<Impact, { label: string; color: string; short: string }> = {
+    C: { label: 'Critical', color: T.red, short: 'CRIT' },
+    H: { label: 'High', color: T.amber, short: 'HIGH' },
+    M: { label: 'Medium', color: T.blue, short: 'MED' },
+    L: { label: 'Low', color: T.textDim, short: 'LOW' },
+  };
+
+  const EFFORT_CFG: Record<Effort, { label: string; color: string }> = {
+    L: { label: 'Low', color: T.green },
+    M: { label: 'Med', color: T.amber },
+    H: { label: 'High', color: T.red },
+  };
+
+  const OWNER_CFG: Record<Owner, { label: string; color: string }> = {
+    t: { label: 'Tomi', color: T.blueHot },
+    s: { label: 'Schala', color: T.purple },
+    b: { label: 'Both', color: T.amber },
+    a: { label: 'AI', color: T.green },
+    n: { label: '—', color: T.textFaint },
+  };
   const [battles, setBattles] = useState<Battle[]>([]);
   const [filterCat, setFilterCat] = useState('all');
   const [filterTier, setFilterTier] = useState<string>('all');
@@ -218,7 +183,7 @@ export default function LibraryPage() {
         </div>
 
         {/* ═══ TABLE ═══ */}
-        <div style={{ background: T.surface, borderRadius: T.radius, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
+        <div style={{ background: T.surface, borderRadius: '12px', border: `1px solid ${T.border}`, overflow: 'hidden' }}>
           {/* Header */}
           <div style={{
             display: 'grid',

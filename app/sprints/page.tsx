@@ -1,52 +1,25 @@
 'use client';
+import { useTheme } from '@/lib/theme';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Sprint, SprintBattle, Battle, Tier, Owner } from '@/lib/types';
 
-const T = {
-  bg: '#0B0D10',
-  surface: '#12151A',
-  card: '#171B21',
-  elevated: '#1D2228',
-  border: 'rgba(255,255,255,0.06)',
-  borderLit: 'rgba(255,255,255,0.10)',
-
-  blue: '#5A9CF5',
-  blueHot: '#78B4FF',
-  blueWash: 'rgba(90,156,245,0.06)',
-  blueBorder: 'rgba(90,156,245,0.15)',
-  blueGlow: 'rgba(90,156,245,0.08)',
-
-  text: '#DFE1E5',
-  textBright: '#F2F3F5',
-  textMid: '#9DA3AE',
-  textDim: '#606878',
-  textFaint: '#3A4050',
-
-  green: '#2DD881',
-  greenDim: 'rgba(45,216,129,0.12)',
-  red: '#FF5C5C',
-  redDim: 'rgba(255,92,92,0.12)',
-  amber: '#FFB340',
-  amberDim: 'rgba(255,179,64,0.12)',
-  purple: '#B07CFF',
-
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-};
-
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  not_started: { label: 'Not Started', color: T.textDim, bg: 'rgba(96,104,120,0.1)' },
-  in_progress: { label: 'In Progress', color: T.blue, bg: T.blueWash },
-  blocked: { label: 'Blocked', color: T.red, bg: T.redDim },
-  done: { label: 'Done', color: T.green, bg: T.greenDim },
-  deferred: { label: 'Deferred', color: T.amber, bg: T.amberDim },
-};
 
 const OWNER_LABEL: Record<Owner, string> = { t: 'Tomi', s: 'Schala', b: 'Both', a: 'AI', n: '—' };
-const OWNER_COLOR: Record<Owner, string> = { t: T.blueHot, s: T.purple, b: T.amber, a: T.green, n: T.textFaint };
 
 export default function SprintsPage() {
+  const { theme: T, mode } = useTheme();
+
+  const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+    not_started: { label: 'Not Started', color: T.textDim, bg: 'rgba(96,104,120,0.1)' },
+    in_progress: { label: 'In Progress', color: T.blue, bg: T.blueWash },
+    blocked: { label: 'Blocked', color: T.red, bg: T.redDim },
+    done: { label: 'Done', color: T.green, bg: T.greenDim },
+    deferred: { label: 'Deferred', color: T.amber, bg: T.amberDim },
+  };
+
+  const OWNER_COLOR: Record<Owner, string> = { t: T.blueHot, s: T.purple, b: T.amber, a: T.green, n: T.textFaint };
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [sprintBattles, setSprintBattles] = useState<Record<string, SprintBattle[]>>({});
   const [allBattles, setAllBattles] = useState<Battle[]>([]);

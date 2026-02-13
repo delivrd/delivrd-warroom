@@ -3,20 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from '@/lib/supabase';
-
-const T = {
-  bg: '#0B0D10',
-  surface: '#12151A',
-  border: 'rgba(255,255,255,0.06)',
-  blue: '#5A9CF5',
-  blueGlow: 'rgba(90,156,245,0.15)',
-  text: '#DFE1E5',
-  textBright: '#F2F3F5',
-  textMid: '#9DA3AE',
-  textDim: '#606878',
-  textFaint: '#3A4050',
-  green: '#2DD881',
-};
+import { useTheme } from '@/lib/theme';
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -31,6 +18,7 @@ const NAV_LINKS = [
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme: T, mode, toggle } = useTheme();
 
   if (pathname === '/login') return null;
 
@@ -42,7 +30,7 @@ export default function Nav() {
   return (
     <nav style={{
       position: 'sticky', top: 0, zIndex: 50,
-      background: 'rgba(11,13,16,0.88)',
+      background: mode === 'dark' ? 'rgba(11,13,16,0.88)' : 'rgba(255,255,255,0.92)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
       borderBottom: `1px solid ${T.border}`,
@@ -63,11 +51,10 @@ export default function Nav() {
           <img
             src="https://cdn.prod.website-files.com/64385d3c78af797e73f21562/65e919896fc3669ecfe1d74b_Delivrd_2024_white_long%404x.png"
             alt="Delivrd"
-            style={{ height: '18px', opacity: 0.95 }}
+            style={{ height: '18px', opacity: 0.95, filter: mode === 'light' ? 'invert(1)' : 'none' }}
           />
           <div style={{ width: '1px', height: '16px', background: T.border }} />
           <span style={{ fontSize: '11px', fontWeight: 600, color: T.textDim, letterSpacing: '0.5px' }}>War Room</span>
-          {/* Live dot */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: '4px' }}>
             <div style={{
               width: '5px', height: '5px', borderRadius: '50%',
@@ -88,14 +75,11 @@ export default function Nav() {
                 color: active ? T.textBright : T.textDim,
                 textDecoration: 'none',
                 borderRadius: '6px',
-                background: active ? T.blueGlow : 'transparent',
+                background: active ? `${T.blue}15` : 'transparent',
                 border: active ? `1px solid ${T.blue}15` : '1px solid transparent',
                 transition: 'all 0.12s ease',
                 letterSpacing: '-0.1px',
-              }}
-              onMouseEnter={e => { if (!active) { (e.target as HTMLElement).style.color = T.textMid; (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}}
-              onMouseLeave={e => { if (!active) { (e.target as HTMLElement).style.color = T.textDim; (e.target as HTMLElement).style.background = 'transparent'; }}}
-              >
+              }}>
                 {link.label}
               </Link>
             );
@@ -103,14 +87,20 @@ export default function Nav() {
 
           <div style={{ width: '1px', height: '16px', background: T.border, margin: '0 8px' }} />
 
+          <button onClick={toggle} style={{
+            fontSize: '11px', fontWeight: 450, color: T.textDim,
+            background: 'none', border: `1px solid ${T.border}`, borderRadius: '6px',
+            cursor: 'pointer', padding: '4px 10px',
+            transition: 'color 0.12s',
+          }}>
+            {mode === 'dark' ? '☀️' : '🌙'}
+          </button>
+
           <button onClick={handleLogout} style={{
             fontSize: '11px', fontWeight: 450, color: T.textFaint,
             background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px',
             transition: 'color 0.12s',
-          }}
-          onMouseEnter={e => (e.target as HTMLElement).style.color = T.textDim}
-          onMouseLeave={e => (e.target as HTMLElement).style.color = T.textFaint}
-          >
+          }}>
             Sign Out
           </button>
         </div>

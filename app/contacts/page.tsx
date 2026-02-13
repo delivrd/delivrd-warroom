@@ -1,21 +1,14 @@
 'use client';
+import { useTheme } from '@/lib/theme';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Contact, PipelineStage } from '@/lib/types/crm';
 import { PIPELINE_STAGES, getStageConfig } from '@/lib/types/crm';
 
-const T = {
-  bg: '#0B0D10', surface: '#12151A', card: '#171B21', elevated: '#1D2228',
-  border: 'rgba(255,255,255,0.06)', borderLit: 'rgba(255,255,255,0.10)',
-  blue: '#5A9CF5', blueHot: '#78B4FF', blueWash: 'rgba(90,156,245,0.06)',
-  text: '#DFE1E5', textBright: '#F2F3F5', textMid: '#9DA3AE',
-  textDim: '#606878', textFaint: '#3A4050',
-  green: '#2DD881', red: '#FF5C5C', amber: '#FFB340', purple: '#B07CFF',
-  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
-};
 
 export default function ContactsPage() {
+  const { theme: T, mode } = useTheme();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('all');
