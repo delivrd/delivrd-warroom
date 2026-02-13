@@ -109,3 +109,13 @@ function formatE164(phone: string): string {
   if (digits.length === 11 && digits[0] === '1') return `+${digits}`;
   return `+${digits}`;
 }
+
+// Debug: check if env vars are loaded
+export async function GET() {
+  return NextResponse.json({
+    quo_key_set: !!process.env.QUO_API_KEY,
+    quo_key_length: (process.env.QUO_API_KEY || '').length,
+    gmail_url_set: !!process.env.GMAIL_SCRIPT_URL,
+    all_env_keys: Object.keys(process.env).filter(k => k.includes('QUO') || k.includes('GMAIL') || k.includes('SUPA')),
+  });
+}
