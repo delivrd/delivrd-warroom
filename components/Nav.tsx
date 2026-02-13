@@ -19,10 +19,12 @@ const T = {
 };
 
 const NAV_LINKS = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/flow', label: 'Deal Flow' },
+  { href: '/pipeline', label: 'Pipeline' },
   { href: '/library', label: 'Library' },
   { href: '/sprints', label: 'Sprints' },
   { href: '/map', label: 'Map' },
-  { href: '/pipeline', label: 'Pipeline' },
   { href: '/contacts', label: 'Contacts' },
 ];
 
