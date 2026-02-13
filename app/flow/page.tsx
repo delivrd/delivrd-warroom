@@ -512,7 +512,6 @@ export default function DealFlowPage() {
                 </div>
               </div>
             )}
-            </div>
 
             {/* Log activity panel */}
             {showLogPanel && (
