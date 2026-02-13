@@ -45,6 +45,13 @@ export default function DealFlowPage() {
   const [showLogPanel, setShowLogPanel] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
   const [stats, setStats] = useState({ worked: 0, moved: 0, skipped: 0 });
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<string | null>(null);
+  const [showSendSms, setShowSendSms] = useState(false);
+  const [showSendEmail, setShowSendEmail] = useState(false);
+  const [smsContent, setSmsContent] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContent, setEmailContent] = useState('');
 
   useEffect(() => { loadQueue(); }, []);
 
@@ -135,6 +142,70 @@ export default function DealFlowPage() {
     setLogContent('');
     setShowLogPanel(false);
     loadComms(current.id);
+  }
+
+  async function sendSms() {
+    if (!current || !smsContent.trim() || !current.phone) return;
+    setSending(true);
+    setSendStatus(null);
+    try {
+      const res = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'sms',
+          contact_id: current.id,
+          to: current.phone,
+          content: smsContent,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSendStatus('✓ SMS sent');
+        setSmsContent('');
+        setShowSendSms(false);
+        loadComms(current.id);
+      } else {
+        setSendStatus(`Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setSendStatus(`Error: ${err.message}`);
+    }
+    setSending(false);
+    setTimeout(() => setSendStatus(null), 3000);
+  }
+
+  async function sendEmail() {
+    if (!current || !emailContent.trim() || !current.email) return;
+    setSending(true);
+    setSendStatus(null);
+    try {
+      const res = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'email',
+          contact_id: current.id,
+          to: current.email,
+          subject: emailSubject || 'Delivrd - Your Car Buying Concierge',
+          content: emailContent,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSendStatus('✓ Email sent');
+        setEmailContent('');
+        setEmailSubject('');
+        setShowSendEmail(false);
+        loadComms(current.id);
+      } else {
+        setSendStatus(`Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setSendStatus(`Error: ${err.message}`);
+    }
+    setSending(false);
+    setTimeout(() => setSendStatus(null), 3000);
   }
 
   async function setFollowUp() {
@@ -356,24 +427,91 @@ export default function DealFlowPage() {
                   }}>📞 Call</a>
                 )}
                 {current.phone && (
-                  <a href={`sms:${current.phone}`} style={{
-                    fontSize: '11px', fontWeight: 600, color: T.blue, background: T.blueWash,
+                  <button onClick={() => { setShowSendSms(!showSendSms); setShowSendEmail(false); setShowLogPanel(false); }} style={{
+                    fontSize: '11px', fontWeight: 600, color: showSendSms ? T.textBright : T.blue, background: showSendSms ? T.blue : T.blueWash,
                     border: `1px solid ${T.blue}20`, borderRadius: '6px', padding: '6px 14px',
-                    textDecoration: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  }}>💬 Text</a>
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  }}>💬 Text</button>
                 )}
                 {current.email && (
-                  <a href={`mailto:${current.email}`} style={{
-                    fontSize: '11px', fontWeight: 600, color: T.purple, background: T.purpleDim,
+                  <button onClick={() => { setShowSendEmail(!showSendEmail); setShowSendSms(false); setShowLogPanel(false); }} style={{
+                    fontSize: '11px', fontWeight: 600, color: showSendEmail ? T.textBright : T.purple, background: showSendEmail ? T.purple : T.purpleDim,
                     border: `1px solid ${T.purple}20`, borderRadius: '6px', padding: '6px 14px',
-                    textDecoration: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  }}>📧 Email</a>
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  }}>📧 Email</button>
                 )}
-                <button onClick={() => setShowLogPanel(!showLogPanel)} style={{
+                <button onClick={() => { setShowLogPanel(!showLogPanel); setShowSendSms(false); setShowSendEmail(false); }} style={{
                   fontSize: '11px', fontWeight: 600, color: T.textMid, background: T.elevated,
                   border: `1px solid ${T.border}`, borderRadius: '6px', padding: '6px 14px', cursor: 'pointer',
                 }}>📝 Log Activity</button>
+                {sendStatus && (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: sendStatus.startsWith('✓') ? T.green : T.red, alignSelf: 'center' }}>{sendStatus}</span>
+                )}
               </div>
+            </div>
+
+            {/* SMS Compose Panel */}
+            {showSendSms && current.phone && (
+              <div style={{ background: T.surface, borderRadius: '10px', border: `1px solid ${T.blueBorder}`, padding: '16px', borderLeft: `2px solid ${T.blue}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: T.blue, letterSpacing: '1px' }}>SEND SMS → {current.phone}</span>
+                </div>
+                <textarea value={smsContent} onChange={e => setSmsContent(e.target.value)}
+                  placeholder="Type your message..." rows={3} autoFocus
+                  style={{
+                    width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
+                    borderRadius: '6px', fontSize: '13px', color: T.text, outline: 'none',
+                    fontFamily: 'inherit', resize: 'none' as const, lineHeight: 1.6, marginBottom: '8px',
+                  }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '10px', color: T.textFaint }}>{smsContent.length}/160 chars</span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => setShowSendSms(false)} style={{
+                      fontSize: '11px', color: T.textDim, background: 'none', border: `1px solid ${T.border}`,
+                      borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+                    }}>Cancel</button>
+                    <button onClick={sendSms} disabled={sending || !smsContent.trim()} style={{
+                      fontSize: '11px', fontWeight: 600, color: T.textBright, background: T.blue,
+                      border: 'none', borderRadius: '6px', padding: '6px 16px',
+                      cursor: sending ? 'wait' : 'pointer', opacity: !smsContent.trim() ? 0.4 : 1,
+                    }}>{sending ? 'Sending...' : 'Send SMS →'}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Email Compose Panel */}
+            {showSendEmail && current.email && (
+              <div style={{ background: T.surface, borderRadius: '10px', border: `1px solid ${T.purple}20`, padding: '16px', borderLeft: `2px solid ${T.purple}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: T.purple, letterSpacing: '1px' }}>SEND EMAIL → {current.email}</span>
+                </div>
+                <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="Subject (optional)" style={{
+                    width: '100%', padding: '8px 10px', background: T.bg, border: `1px solid ${T.border}`,
+                    borderRadius: '6px', fontSize: '12px', color: T.text, outline: 'none',
+                    fontFamily: 'inherit', marginBottom: '6px',
+                  }} />
+                <textarea value={emailContent} onChange={e => setEmailContent(e.target.value)}
+                  placeholder="Type your email..." rows={5} autoFocus
+                  style={{
+                    width: '100%', padding: '10px', background: T.bg, border: `1px solid ${T.border}`,
+                    borderRadius: '6px', fontSize: '13px', color: T.text, outline: 'none',
+                    fontFamily: 'inherit', resize: 'vertical' as const, lineHeight: 1.6, marginBottom: '8px',
+                  }} />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                  <button onClick={() => setShowSendEmail(false)} style={{
+                    fontSize: '11px', color: T.textDim, background: 'none', border: `1px solid ${T.border}`,
+                    borderRadius: '6px', padding: '6px 12px', cursor: 'pointer',
+                  }}>Cancel</button>
+                  <button onClick={sendEmail} disabled={sending || !emailContent.trim()} style={{
+                    fontSize: '11px', fontWeight: 600, color: T.textBright, background: T.purple,
+                    border: 'none', borderRadius: '6px', padding: '6px 16px',
+                    cursor: sending ? 'wait' : 'pointer', opacity: !emailContent.trim() ? 0.4 : 1,
+                  }}>{sending ? 'Sending...' : 'Send Email →'}</button>
+                </div>
+              </div>
+            )}
             </div>
 
             {/* Log activity panel */}
@@ -446,10 +584,18 @@ export default function DealFlowPage() {
                       fontSize: '10px', fontWeight: 600, color: T.blue, background: T.blueWash,
                       border: `1px solid ${T.blueBorder}`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
                     }}>Copy</button>
-                    <button onClick={() => { setLogContent(aiResponse); setLogType('sms'); setShowLogPanel(true); }} style={{
-                      fontSize: '10px', fontWeight: 600, color: T.textDim, background: T.elevated,
-                      border: `1px solid ${T.border}`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
-                    }}>Use as SMS Log</button>
+                    {current.phone && (
+                      <button onClick={() => { setSmsContent(aiResponse); setShowSendSms(true); setShowSendEmail(false); setShowLogPanel(false); }} style={{
+                        fontSize: '10px', fontWeight: 600, color: T.green, background: T.greenDim,
+                        border: `1px solid ${T.green}20`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
+                      }}>Send as SMS →</button>
+                    )}
+                    {current.email && (
+                      <button onClick={() => { setEmailContent(aiResponse); setShowSendEmail(true); setShowSendSms(false); setShowLogPanel(false); }} style={{
+                        fontSize: '10px', fontWeight: 600, color: T.purple, background: T.purpleDim,
+                        border: `1px solid ${T.purple}20`, borderRadius: '5px', padding: '4px 10px', cursor: 'pointer',
+                      }}>Send as Email →</button>
+                    )}
                     <button onClick={generateAiResponse} style={{
                       fontSize: '10px', fontWeight: 500, color: T.textFaint, background: 'none',
                       border: 'none', cursor: 'pointer', padding: '4px 8px',
