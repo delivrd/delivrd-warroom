@@ -115,15 +115,53 @@ export async function POST(request: Request) {
       contact.lead_score = 15; // phone contact is decent signal
     }
 
-    // ═══ TIKTOK / INSTAGRAM ═══
+    // ═══ TIKTOK / INSTAGRAM / MANYCHAT ═══
     else if (source === 'tiktok' || source === 'instagram' || source === 'youtube') {
       contact.first_name = body.first_name || body.name?.split(' ')[0] || body.username || null;
       contact.last_name = body.last_name || body.name?.split(' ').slice(1).join(' ') || null;
       contact.phone = body.phone || null;
       contact.email = body.email || null;
-      contact.source_detail = body.platform || source;
+      contact.manychat_id = body.subscriber_id || null;
+      contact.source_detail = body.source_detail || body.platform || source;
       contact.vehicle_interest = body.vehicle_interest || body.vehicle || null;
-      contact.lead_score = 10;
+
+      // Parse ManyChat tags into CRM fields
+      const tags = typeof body.tags === 'string' ? body.tags.split(',').map((t: string) => t.trim().toLowerCase()) : 
+                   Array.isArray(body.tags) ? body.tags.map((t: string) => t.toLowerCase()) : [];
+
+      if (tags.length > 0) {
+        // Timeline from tags
+        if (tags.includes('timeline_0-30')) contact.timeline = 'Less than 30 days';
+        else if (tags.includes('timeline_1-3mo')) contact.timeline = '1-3 months';
+
+        // Vehicle preference from tags
+        if (tags.includes('vehicle_new')) contact.vehicle_interest = contact.vehicle_interest || 'New vehicle';
+        else if (tags.includes('vehicle_used')) contact.vehicle_interest = contact.vehicle_interest || 'Used vehicle';
+
+        // Intent-based scoring
+        let score = 15; // base for IG lead
+        if (tags.includes('high_intent') || tags.includes('intern_signup')) score = 85;
+        else if (tags.includes('intent_sales')) score += 25;
+        else if (tags.includes('intent_questionsservice')) score += 10;
+        else if (tags.includes('intent_questionadvice')) score += 5;
+
+        if (tags.includes('human_handoff')) score += 15;
+        if (tags.includes('timeline_0-30')) score += 15;
+        else if (tags.includes('timeline_1-3mo')) score += 5;
+        if (contact.phone) score += 10;
+
+        contact.lead_score = Math.min(score, 100);
+        contact.notes = `ManyChat tags: ${tags.join(', ')}`;
+
+        // Set pipeline stage based on intent
+        if (tags.includes('high_intent') || tags.includes('human_handoff')) {
+          contact.pipeline_stage = 'qualified';
+        } else if (tags.includes('intent_sales')) {
+          contact.pipeline_stage = 'contacted';
+        }
+      } else {
+        contact.lead_score = 10;
+      }
     }
 
     // ═══ GENERIC ═══
