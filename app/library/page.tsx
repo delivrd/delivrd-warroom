@@ -2,443 +2,287 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Battle, Tier } from '@/lib/types';
-import { TIER_LABELS, IMPACT_LABELS, EFFORT_LABELS, OWNER_LABELS } from '@/lib/types';
+import type { Battle, Tier, Impact, Effort, Owner } from '@/lib/types';
+
+// ═══ DESIGN TOKENS ═══
+const T = {
+  bg: '#08090B',
+  surface: '#101114',
+  card: '#141619',
+  elevated: '#1A1D21',
+  glass: 'rgba(20,22,25,0.75)',
+  border: '#1E2126',
+  borderLit: '#2A2E34',
+
+  blue: '#5A9CF5',
+  blueHot: '#6BABFF',
+  blueWash: 'rgba(90,156,245,0.05)',
+  blueBorder: 'rgba(90,156,245,0.12)',
+  blueGlow: 'rgba(90,156,245,0.06)',
+
+  text: '#E4E6EA',
+  textBright: '#F7F8F9',
+  textMid: '#B0B5BE',
+  textDim: '#6E747F',
+  textFaint: '#3E434C',
+
+  green: '#34D07B',
+  red: '#F04B4B',
+  amber: '#E5A832',
+  purple: '#A97CF5',
+
+  mono: "'SF Mono', 'Fira Code', 'Consolas', monospace",
+};
+
+const TIER_CONFIG: Record<Tier, { label: string; short: string; color: string; glow: string }> = {
+  now: { label: 'Sprint Now', short: 'NOW', color: T.red, glow: 'rgba(240,75,75,0.12)' },
+  soon: { label: 'Sprint Soon', short: 'SOON', color: T.amber, glow: 'rgba(229,168,50,0.12)' },
+  later: { label: 'Backlog', short: 'BACKLOG', color: T.blue, glow: 'rgba(90,156,245,0.08)' },
+  monitor: { label: 'Monitor', short: 'MONITOR', color: T.textFaint, glow: 'rgba(62,67,76,0.08)' },
+};
+
+const IMPACT_COLOR: Record<Impact, string> = { C: T.red, H: T.amber, M: T.blue, L: T.textDim };
+const IMPACT_LABEL: Record<Impact, string> = { C: 'Critical', H: 'High', M: 'Medium', L: 'Low' };
+const EFFORT_COLOR: Record<Effort, string> = { L: T.green, M: T.amber, H: T.red };
+const EFFORT_LABEL: Record<Effort, string> = { L: 'Low', M: 'Medium', H: 'High' };
+const OWNER_LABEL: Record<Owner, string> = { t: 'Tomi', s: 'Schalaschly', b: 'Both', a: 'AI', n: '—' };
+
+const CAT_ABBR: Record<string, string> = {
+  organic: 'ORG', live: 'LIVE', search: 'SRCH', paid: 'PAID', direct: 'DR',
+  referral: 'REF', partnerships: 'PRTN', marketplaces: 'MKTP', media: 'PR',
+  community: 'COMM', product: 'PROD', offline: 'OFF', darksocial: 'DARK',
+};
+
+const CAT_LABEL: Record<string, string> = {
+  organic: 'Organic', live: 'Live & Community', search: 'Search & Intent',
+  paid: 'Paid Social', direct: 'Direct Response', referral: 'Referral',
+  partnerships: 'Partnerships', marketplaces: 'Marketplaces', media: 'Media & PR',
+  community: 'Community', product: 'Product-Led', offline: 'Offline', darksocial: 'Dark Social',
+};
 
 export default function LibraryPage() {
   const [battles, setBattles] = useState<Battle[]>([]);
-  const [filteredBattles, setFilteredBattles] = useState<Battle[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedTier, setSelectedTier] = useState<string>('all');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [filterCat, setFilterCat] = useState('all');
+  const [filterTier, setFilterTier] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBattles();
-  }, []);
+  useEffect(() => { loadBattles(); }, []);
 
   async function loadBattles() {
-    const { data, error } = await supabase
-      .from('battles')
-      .select('*')
-      .order('id');
-
-    if (error) {
-      console.error('Error loading battles:', error);
-    } else {
-      setBattles(data || []);
-      setFilteredBattles(data || []);
-    }
+    const { data, error } = await supabase.from('battles').select('*').order('id');
+    if (error) console.error('Error loading battles:', error);
+    else setBattles(data || []);
     setLoading(false);
   }
 
-  useEffect(() => {
-    let filtered = battles;
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(b =>
-        b.name.toLowerCase().includes(term) ||
-        b.description?.toLowerCase().includes(term)
-      );
-    }
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(b => b.category === selectedCategory);
-    }
-
-    if (selectedTier !== 'all') {
-      filtered = filtered.filter(b => b.tier === selectedTier);
-    }
-
-    setFilteredBattles(filtered);
-  }, [battles, searchTerm, selectedCategory, selectedTier]);
-
   async function updateTier(battleId: number, newTier: Tier) {
-    const { error } = await supabase
-      .from('battles')
+    const { error } = await supabase.from('battles')
       .update({ tier: newTier, updated_at: new Date().toISOString() })
       .eq('id', battleId);
-
-    if (error) {
-      console.error('Error updating tier:', error);
-    } else {
-      setBattles(prev => prev.map(b =>
-        b.id === battleId ? { ...b, tier: newTier } : b
-      ));
-    }
+    if (error) console.error('Error updating tier:', error);
+    else setBattles(prev => prev.map(b => b.id === battleId ? { ...b, tier: newTier } : b));
   }
 
-  const categories = Array.from(new Set(battles.map(b => b.category)));
-
-  // Sort by tier for display
-  const sortedBattles = [...filteredBattles].sort((a, b) => {
-    const tierOrder: Record<Tier, number> = { now: 0, soon: 1, later: 2, monitor: 3 };
-    return tierOrder[a.tier] - tierOrder[b.tier];
+  const filtered = battles.filter(b => {
+    if (filterCat !== 'all' && b.category !== filterCat) return false;
+    if (filterTier !== 'all' && b.tier !== filterTier) return false;
+    if (search && !b.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
   });
 
-  // Group by tier
-  const battlesByTier = {
-    now: sortedBattles.filter(b => b.tier === 'now'),
-    soon: sortedBattles.filter(b => b.tier === 'soon'),
-    later: sortedBattles.filter(b => b.tier === 'later'),
-    monitor: sortedBattles.filter(b => b.tier === 'monitor'),
-  };
+  const tierOrder: Tier[] = ['now', 'soon', 'later', 'monitor'];
+  const sorted = [...filtered].sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier));
+  const counts = { now: 0, soon: 0, later: 0, monitor: 0 };
+  battles.forEach(b => counts[b.tier]++);
+  const totalActive = counts.now + counts.soon;
+  const categories = Array.from(new Set(battles.map(b => b.category))).sort();
 
-  // Stats for hero cluster
-  const stats = {
-    total: battles.length,
-    filtered: sortedBattles.length,
-    now: battles.filter(b => b.tier === 'now').length,
-    soon: battles.filter(b => b.tier === 'soon').length,
-    later: battles.filter(b => b.tier === 'later').length,
-    monitor: battles.filter(b => b.tier === 'monitor').length,
-    categories: categories.length,
-  };
-
-  const tierConfig = {
-    now: { label: 'NOW', color: '#34c759', bg: 'rgba(52,199,89,0.15)', border: 'rgba(52,199,89,0.25)' },
-    soon: { label: 'SOON', color: '#00a8ff', bg: 'rgba(0,168,255,0.15)', border: 'rgba(0,168,255,0.25)' },
-    later: { label: 'LATER', color: '#ff9500', bg: 'rgba(255,149,0,0.15)', border: 'rgba(255,149,0,0.25)' },
-    monitor: { label: 'MONITOR', color: '#8e8e93', bg: 'rgba(142,142,147,0.15)', border: 'rgba(142,142,147,0.25)' },
-  };
+  let lastTier: string | null = null;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-war-bg flex items-center justify-center">
-        <div className="text-text-mid text-label font-mono animate-pulse">Loading...</div>
+      <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ color: T.textDim, fontFamily: T.mono, fontSize: '13px' }}>Loading...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-war-bg font-sans">
-      {/* Hero Header */}
-      <div className="max-w-[1600px] mx-auto px-10 pt-section pb-block">
-        {/* Headline */}
-        <div className="mb-block">
-          <h1 className="text-display font-bold tracking-tight text-text-bright mb-6">
-            Battle Library
-          </h1>
-          <p className="text-body-lg text-text-mid max-w-3xl">
-            Strategic initiatives prioritized by tier. From NOW to MONITOR — every battle mapped, scored, and ready to execute.
-          </p>
-        </div>
-        
-        {/* Hero Stats Cluster */}
-        <div className="mb-element grid grid-cols-5 gap-5">
-          {/* Total Battles */}
-          <div 
-            className="bg-war-surface border border-war-border rounded-premium p-card transition-all hover:border-war-border-hover cursor-default"
-          >
-            <div className="text-micro text-text-faint font-bold mb-4">
-              TOTAL BATTLES
+    <div style={{ minHeight: '100vh', background: T.bg, position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes expandIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 600px; } }
+        select option { background: ${T.elevated}; color: ${T.text}; }
+      `}</style>
+
+      {/* Cinematic background */}
+      <div style={{ position: 'fixed', top: '-20%', left: '30%', width: '60%', height: '60%', background: 'radial-gradient(ellipse, rgba(90,156,245,0.03) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ padding: '36px 40px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 600, color: T.textBright, letterSpacing: '-0.5px', marginBottom: '6px' }}>Battle Library</h1>
+              <p style={{ fontSize: '13px', color: T.textDim, fontWeight: 400 }}>Revenue channels ranked by strategic priority</p>
             </div>
-            <div className="text-5xl font-bold font-mono text-text-bright leading-none">
-              {stats.total}
-            </div>
-            {stats.filtered !== stats.total && (
-              <div className="text-caption text-text-dim font-mono mt-3">
-                {stats.filtered} shown
+
+            {/* Hero stat cluster */}
+            <div style={{ display: 'flex', gap: '1px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${T.border}` }}>
+              <div style={{ background: T.blueWash, padding: '14px 24px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '2px', borderRight: `1px solid ${T.border}`, position: 'relative' as const }}>
+                <div style={{ position: 'absolute' as const, inset: 0, background: `radial-gradient(circle at center, ${T.blueGlow} 0%, transparent 70%)`, pointerEvents: 'none' as const }} />
+                <span style={{ fontSize: '28px', fontWeight: 800, color: T.blueHot, fontFamily: T.mono, lineHeight: 1, position: 'relative' as const }}>{totalActive}</span>
+                <span style={{ fontSize: '8px', fontWeight: 700, color: T.blue, letterSpacing: '1.5px', position: 'relative' as const }}>IN PLAY</span>
               </div>
-            )}
-          </div>
-
-          {/* Now */}
-          <div 
-            className="bg-war-surface border rounded-premium p-card transition-all hover:border-war-border-hover cursor-pointer"
-            style={{ 
-              borderColor: selectedTier === 'now' ? tierConfig.now.color : 'rgba(255,255,255,0.06)',
-              background: selectedTier === 'now' ? tierConfig.now.bg : 'transparent',
-              boxShadow: selectedTier === 'now' ? `0 0 24px ${tierConfig.now.color}25` : 'none'
-            }}
-            onClick={() => setSelectedTier(selectedTier === 'now' ? 'all' : 'now')}
-          >
-            <div className="text-micro font-bold mb-4" style={{ color: tierConfig.now.color }}>
-              NOW
-            </div>
-            <div className="text-5xl font-bold font-mono leading-none" style={{ color: tierConfig.now.color }}>
-              {stats.now}
+              {tierOrder.map(k => {
+                const t = TIER_CONFIG[k];
+                const active = filterTier === k;
+                return (
+                  <button key={k} onClick={() => setFilterTier(filterTier === k ? 'all' : k)} style={{
+                    background: active ? t.glow : T.surface, border: 'none', padding: '14px 18px', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '2px',
+                    borderRight: `1px solid ${T.border}`, transition: 'background 0.1s', minWidth: '64px',
+                  }}>
+                    <span style={{ fontSize: '18px', fontWeight: 700, color: active ? t.color : T.textMid, fontFamily: T.mono, lineHeight: 1 }}>{counts[k]}</span>
+                    <span style={{ fontSize: '8px', fontWeight: 700, color: active ? t.color : T.textFaint, letterSpacing: '1px' }}>{t.short}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Soon */}
-          <div 
-            className="bg-war-surface border rounded-premium p-card transition-all hover:border-war-border-hover cursor-pointer"
-            style={{ 
-              borderColor: selectedTier === 'soon' ? tierConfig.soon.color : 'rgba(255,255,255,0.06)',
-              background: selectedTier === 'soon' ? tierConfig.soon.bg : 'transparent',
-              boxShadow: selectedTier === 'soon' ? `0 0 24px ${tierConfig.soon.color}25` : 'none'
-            }}
-            onClick={() => setSelectedTier(selectedTier === 'soon' ? 'all' : 'soon')}
-          >
-            <div className="text-micro font-bold mb-4" style={{ color: tierConfig.soon.color }}>
-              SOON
+          {/* Filters */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '220px' }}>
+              <input type="text" placeholder="Search channels..." value={search} onChange={e => setSearch(e.target.value)} style={{
+                width: '100%', padding: '9px 12px 9px 32px', background: T.surface, border: `1px solid ${T.border}`,
+                borderRadius: '8px', fontSize: '12px', color: T.text, outline: 'none', fontFamily: 'inherit',
+              }} />
+              <span style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: T.textFaint }}>⌕</span>
             </div>
-            <div className="text-5xl font-bold font-mono leading-none" style={{ color: tierConfig.soon.color }}>
-              {stats.soon}
-            </div>
-          </div>
-
-          {/* Later */}
-          <div 
-            className="bg-war-surface border rounded-premium p-card transition-all hover:border-war-border-hover cursor-pointer"
-            style={{ 
-              borderColor: selectedTier === 'later' ? tierConfig.later.color : 'rgba(255,255,255,0.06)',
-              background: selectedTier === 'later' ? tierConfig.later.bg : 'transparent',
-              boxShadow: selectedTier === 'later' ? `0 0 24px ${tierConfig.later.color}25` : 'none'
-            }}
-            onClick={() => setSelectedTier(selectedTier === 'later' ? 'all' : 'later')}
-          >
-            <div className="text-micro font-bold mb-4" style={{ color: tierConfig.later.color }}>
-              LATER
-            </div>
-            <div className="text-5xl font-bold font-mono leading-none" style={{ color: tierConfig.later.color }}>
-              {stats.later}
-            </div>
-          </div>
-
-          {/* Monitor */}
-          <div 
-            className="bg-war-surface border rounded-premium p-card transition-all hover:border-war-border-hover cursor-pointer"
-            style={{ 
-              borderColor: selectedTier === 'monitor' ? tierConfig.monitor.color : 'rgba(255,255,255,0.06)',
-              background: selectedTier === 'monitor' ? tierConfig.monitor.bg : 'transparent',
-              boxShadow: selectedTier === 'monitor' ? `0 0 24px ${tierConfig.monitor.color}25` : 'none'
-            }}
-            onClick={() => setSelectedTier(selectedTier === 'monitor' ? 'all' : 'monitor')}
-          >
-            <div className="text-micro font-bold mb-4" style={{ color: tierConfig.monitor.color }}>
-              MONITOR
-            </div>
-            <div className="text-5xl font-bold font-mono leading-none" style={{ color: tierConfig.monitor.color }}>
-              {stats.monitor}
-            </div>
-          </div>
-        </div>
-
-        {/* Search & Filters */}
-        <div className="mb-block space-y-5">
-          <input
-            type="text"
-            placeholder="Search battles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-6 py-5 bg-war-surface border border-war-border text-text-bright placeholder-text-faint rounded-premium text-body font-mono focus:outline-none focus:border-war-blue focus:ring-2 focus:ring-war-blue-dim transition-all"
-          />
-
-          <div className="flex gap-4">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-6 py-4 bg-war-surface border border-war-border text-text-mid rounded-button text-label font-semibold focus:outline-none focus:border-war-blue cursor-pointer transition-all"
-            >
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{
+              padding: '9px 12px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: '8px',
+              fontSize: '12px', color: filterCat === 'all' ? T.textDim : T.textMid, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
               <option value="all">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categories.map(cat => <option key={cat} value={cat}>{CAT_LABEL[cat] || cat}</option>)}
             </select>
-
-            {selectedCategory !== 'all' && (
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className="px-6 py-4 bg-status-red-dim border border-status-red-bright text-status-red rounded-button text-label font-bold transition-all hover:bg-status-red-bright"
-              >
-                Clear
-              </button>
+            {(search || filterCat !== 'all' || filterTier !== 'all') && (
+              <button onClick={() => { setSearch(''); setFilterCat('all'); setFilterTier('all'); }}
+                style={{ fontSize: '11px', color: T.textDim, background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>Clear filters</button>
             )}
+            <span style={{ fontSize: '11px', color: T.textFaint, marginLeft: 'auto', fontFamily: T.mono }}>{filtered.length} channels</span>
+          </div>
 
-            {selectedTier !== 'all' && (
-              <button
-                onClick={() => setSelectedTier('all')}
-                className="px-6 py-4 bg-status-red-dim border border-status-red-bright text-status-red rounded-button text-label font-bold transition-all hover:bg-status-red-bright"
-              >
-                Clear Tier
-              </button>
-            )}
+          {/* Table header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 76px 76px 90px 72px 90px 24px', alignItems: 'center', padding: '0 20px 10px', gap: '8px', borderBottom: `1px solid ${T.border}` }}>
+            {['#', 'CHANNEL', 'IMPACT', 'EFFORT', 'OWNER', 'TYPE', 'PRIORITY', ''].map((h, i) => (
+              <span key={i} style={{ fontSize: '9px', fontWeight: 600, color: T.textFaint, letterSpacing: '1.2px' }}>{h}</span>
+            ))}
           </div>
         </div>
 
-        {/* Battle List by Tier */}
-        {sortedBattles.length === 0 ? (
-          <div className="text-center py-section">
-            <div className="text-6xl text-text-faint mb-6 opacity-20">∅</div>
-            <p className="text-body-lg text-text-mid">No battles match your filters</p>
-          </div>
-        ) : (
-          <div className="space-y-block">
-            {(Object.keys(battlesByTier) as Array<keyof typeof battlesByTier>).map((tier) => {
-              const tieredBattles = battlesByTier[tier];
-              if (tieredBattles.length === 0) return null;
+        {/* Rows */}
+        <div style={{ padding: '0 40px 100px' }}>
+          {sorted.length === 0 ? (
+            <div style={{ textAlign: 'center' as const, padding: '80px 0' }}>
+              <p style={{ fontSize: '14px', color: T.textDim }}>No channels match your filters</p>
+            </div>
+          ) : sorted.map((b) => {
+            const isExp = expanded === b.id;
+            const isHov = hoverRow === b.id;
+            const tier = TIER_CONFIG[b.tier];
 
-              const config = tierConfig[tier];
+            let divider = null;
+            if (b.tier !== lastTier) {
+              lastTier = b.tier;
+              divider = (
+                <div key={`d-${b.tier}`} style={{ padding: '24px 0 10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: tier.color, boxShadow: `0 0 6px ${tier.color}40` }} />
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: tier.color, letterSpacing: '1.5px', textTransform: 'uppercase' as const }}>{tier.label}</span>
+                  <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${tier.color}20, transparent 80%)` }} />
+                </div>
+              );
+            }
 
-              return (
-                <div key={tier} className="space-y-5">
-                  {/* Tier Divider */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <div 
-                      className="w-3 h-3 rounded-full shadow-lg" 
-                      style={{ 
-                        background: config.color,
-                        boxShadow: `0 0 16px ${config.color}40`
-                      }}
-                    />
-                    <div 
-                      className="text-micro font-bold font-mono"
-                      style={{ color: config.color }}
-                    >
-                      {config.label} ({tieredBattles.length})
-                    </div>
-                    <div 
-                      className="flex-1 h-px bg-war-border"
-                    />
+            return (
+              <div key={b.id}>
+                {divider}
+                <div
+                  onMouseEnter={() => setHoverRow(b.id)}
+                  onMouseLeave={() => setHoverRow(null)}
+                  style={{
+                    background: isExp ? T.card : isHov ? T.card : 'transparent',
+                    border: isExp ? `1px solid ${T.borderLit}` : '1px solid transparent',
+                    borderLeft: isExp ? `2px solid ${T.blue}` : isHov ? '2px solid rgba(90,156,245,0.2)' : '2px solid transparent',
+                    borderRadius: '12px', marginBottom: '1px', transition: 'all 0.12s ease',
+                  }}
+                >
+                  <div onClick={() => setExpanded(isExp ? null : b.id)} style={{
+                    display: 'grid', gridTemplateColumns: '40px 1fr 76px 76px 90px 72px 90px 24px',
+                    alignItems: 'center', padding: '13px 20px', cursor: 'pointer', gap: '8px',
+                  }}>
+                    <span style={{ fontSize: '11px', color: T.textFaint, fontFamily: T.mono, fontWeight: 500 }}>{String(b.id).padStart(2, '0')}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 560, color: isExp || isHov ? T.textBright : T.text, transition: 'color 0.1s' }}>{b.name}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 550, color: IMPACT_COLOR[b.impact] }}>{IMPACT_LABEL[b.impact]}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: EFFORT_COLOR[b.effort] }}>{EFFORT_LABEL[b.effort]}</span>
+                    <span style={{ fontSize: '11px', color: T.textDim, fontWeight: 450 }}>{OWNER_LABEL[b.owner]}</span>
+                    <span style={{ fontSize: '10px', color: T.textFaint, fontWeight: 500, letterSpacing: '0.5px' }}>{CAT_ABBR[b.category] || b.category}</span>
+                    <select value={b.tier} onClick={e => e.stopPropagation()} onChange={e => updateTier(b.id, e.target.value as Tier)}
+                      style={{
+                        fontSize: '10px', fontWeight: 600, color: tier.color,
+                        background: tier.glow, border: `1px solid ${tier.color}20`,
+                        borderRadius: '5px', padding: '4px 6px', cursor: 'pointer',
+                        fontFamily: 'inherit', outline: 'none', letterSpacing: '0.3px',
+                      }}>
+                      {tierOrder.map(k => <option key={k} value={k}>{TIER_CONFIG[k].label}</option>)}
+                    </select>
+                    <span style={{
+                      fontSize: '10px', color: T.textFaint, transition: 'transform 0.15s ease',
+                      transform: isExp ? 'rotate(90deg)' : 'none', textAlign: 'center' as const,
+                      opacity: isHov || isExp ? 1 : 0.4,
+                    }}>›</span>
                   </div>
 
-                  {/* Battles */}
-                  {tieredBattles.map((battle, idx) => (
-                    <div
-                      key={battle.id}
-                      className="bg-war-surface border border-war-border rounded-premium p-card transition-all hover:border-war-border-hover animate-fade-up"
-                      style={{ 
-                        animationDelay: `${idx * 0.03}s`,
-                        opacity: 0
-                      }}
-                    >
-                      {/* Battle Row - 8 Column Grid */}
-                      <div className="grid grid-cols-8 gap-6 items-center">
-                        {/* Col 1-2: Name */}
-                        <div className="col-span-2">
-                          <div className="text-body font-semibold text-text-bright leading-tight">
-                            {battle.name}
+                  {isExp && (
+                    <div style={{ padding: '0px 22px 22px', animation: 'expandIn 0.2s ease' }}>
+                      <div style={{ height: '1px', background: `linear-gradient(90deg, ${T.blue}25, transparent 60%)`, marginBottom: '20px' }} />
+                      {b.why_this_tier && (
+                        <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: '8px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.textDim, letterSpacing: '1.5px', marginBottom: '10px' }}>STRATEGIC RATIONALE</div>
+                          <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.why_this_tier}</div>
+                        </div>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                        {b.next_action && (
+                          <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.blue}`, borderRadius: '8px' }}>
+                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.blue, letterSpacing: '1.5px', marginBottom: '10px' }}>NEXT MOVE</div>
+                            <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.next_action}</div>
                           </div>
-                        </div>
-
-                        {/* Col 3: Category */}
-                        <div className="col-span-1">
-                          <div 
-                            className="inline-block px-3 py-1.5 rounded-tag text-micro font-bold border"
-                            style={{ 
-                              background: 'rgba(0,102,255,0.15)', 
-                              color: '#0066ff',
-                              borderColor: 'rgba(0,102,255,0.3)'
-                            }}
-                          >
-                            {battle.category}
+                        )}
+                        {b.ai_play && (
+                          <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.amber}`, borderRadius: '8px' }}>
+                            <div style={{ fontSize: '9px', fontWeight: 700, color: T.amber, letterSpacing: '1.5px', marginBottom: '10px' }}>AI LEVERAGE</div>
+                            <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.ai_play}</div>
                           </div>
-                        </div>
-
-                        {/* Col 4: Impact */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-micro text-text-faint mb-2">IMPACT</div>
-                          <div className="text-label font-bold font-mono text-text-bright">
-                            {IMPACT_LABELS[battle.impact]}
-                          </div>
-                        </div>
-
-                        {/* Col 5: Effort */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-micro text-text-faint mb-2">EFFORT</div>
-                          <div className="text-label font-bold font-mono text-text-bright">
-                            {EFFORT_LABELS[battle.effort]}
-                          </div>
-                        </div>
-
-                        {/* Col 6: Owner */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-micro text-text-faint mb-2">OWNER</div>
-                          <div className="text-label font-bold font-mono text-text-bright">
-                            {OWNER_LABELS[battle.owner]}
-                          </div>
-                        </div>
-
-                        {/* Col 7: Tier Dropdown */}
-                        <div className="col-span-1 flex justify-center">
-                          <select
-                            value={battle.tier}
-                            onChange={(e) => updateTier(battle.id, e.target.value as Tier)}
-                            className="px-4 py-2.5 rounded-button text-label font-bold font-mono cursor-pointer focus:outline-none transition-all"
-                            style={{ 
-                              background: config.bg,
-                              color: config.color,
-                              border: `1px solid ${config.border}`,
-                              boxShadow: `0 0 12px ${config.color}20`
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {Object.entries(TIER_LABELS).map(([value, label]) => (
-                              <option key={value} value={value}>{label}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Col 8: Expand Button */}
-                        <div className="col-span-1 flex justify-end">
-                          <button
-                            onClick={() => setExpandedId(expandedId === battle.id ? null : battle.id)}
-                            className="w-10 h-10 rounded-button bg-war-elevated border border-war-border text-text-mid hover:text-text-bright hover:border-war-border-hover transition-all font-mono text-xl font-bold"
-                          >
-                            {expandedId === battle.id ? '−' : '+'}
-                          </button>
-                        </div>
+                        )}
                       </div>
-
-                      {/* Expanded Details */}
-                      {expandedId === battle.id && (
-                        <div className="mt-element pt-element border-t border-war-border space-y-6 animate-fade-up">
-                          {battle.description && (
-                            <p className="text-body leading-relaxed text-text-mid">
-                              {battle.description}
-                            </p>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-5">
-                            {battle.why_this_tier && (
-                              <div className="bg-status-amber-dim border border-status-amber-bright rounded-premium p-5">
-                                <h4 className="text-micro font-bold text-status-amber mb-3">
-                                  WHY THIS TIER
-                                </h4>
-                                <p className="text-label text-text-bright leading-relaxed">{battle.why_this_tier}</p>
-                              </div>
-                            )}
-
-                            {battle.next_action && (
-                              <div className="bg-war-blue-dim border border-war-blue-bright rounded-premium p-5">
-                                <h4 className="text-micro font-bold text-war-blue mb-3">
-                                  NEXT MOVE
-                                </h4>
-                                <p className="text-label text-text-bright leading-relaxed">{battle.next_action}</p>
-                              </div>
-                            )}
-
-                            {battle.ai_play && (
-                              <div className="bg-status-purple-dim border border-status-purple-bright rounded-premium p-5">
-                                <h4 className="text-micro font-bold text-status-purple mb-3">
-                                  AUTOMATION
-                                </h4>
-                                <p className="text-label text-text-bright leading-relaxed">{battle.ai_play}</p>
-                              </div>
-                            )}
-
-                            {battle.success_metric && (
-                              <div className="bg-status-green-dim border border-status-green-bright rounded-premium p-5">
-                                <h4 className="text-micro font-bold text-status-green mb-3">
-                                  SUCCESS METRIC
-                                </h4>
-                                <p className="text-label text-text-bright leading-relaxed">{battle.success_metric}</p>
-                              </div>
-                            )}
-                          </div>
+                      {b.success_metric && (
+                        <div style={{ padding: '18px 20px', background: T.surface, border: `1px solid ${T.border}`, borderLeft: `2px solid ${T.green}`, borderRadius: '8px' }}>
+                          <div style={{ fontSize: '9px', fontWeight: 700, color: T.green, letterSpacing: '1.5px', marginBottom: '10px' }}>TARGET METRIC</div>
+                          <div style={{ fontSize: '13.5px', color: T.text, lineHeight: 1.75, fontWeight: 400 }}>{b.success_metric}</div>
                         </div>
                       )}
                     </div>
-                  ))}
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
